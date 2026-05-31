@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect, FC, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Task, Message } from "../types";
+import { useLang } from "../LanguageContext";
 
 interface AIAssistantProps {
   tasks: Task[];
 }
 
 const AIAssistant: FC<AIAssistantProps> = ({ tasks }) => {
+  const { tr } = useLang();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: "Hello! I'm your AI productivity assistant. I can help you prioritize tasks, plan your day, or answer any questions about your workflow.",
+      content: tr.welcomeMsg,
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -52,7 +54,7 @@ const AIAssistant: FC<AIAssistantProps> = ({ tasks }) => {
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.reply || data.error || "Sorry, I couldn't process that.",
+        content: data.reply || data.error || tr.failed,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, aiMsg]);
@@ -62,7 +64,7 @@ const AIAssistant: FC<AIAssistantProps> = ({ tasks }) => {
         {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: "Connection error. Please check if the server is running.",
+          content: tr.connError,
           timestamp: new Date().toISOString(),
         },
       ]);
@@ -82,15 +84,12 @@ const AIAssistant: FC<AIAssistantProps> = ({ tasks }) => {
     <>
       <div className="px-4 py-3 border-b border-slate-700 flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-        <h2 className="text-sm font-semibold text-slate-200">AI Assistant</h2>
+        <h2 className="text-sm font-semibold text-slate-200">{tr.aiAssistant}</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scrollbar-thin">
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
                 msg.role === "user"
@@ -123,7 +122,7 @@ const AIAssistant: FC<AIAssistantProps> = ({ tasks }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask me anything..."
+            placeholder={tr.askPlaceholder}
             rows={2}
             className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors resize-none scrollbar-thin"
           />
@@ -137,7 +136,7 @@ const AIAssistant: FC<AIAssistantProps> = ({ tasks }) => {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-slate-600 mt-1.5">Press Enter to send</p>
+        <p className="text-xs text-slate-600 mt-1.5">{tr.pressEnter}</p>
       </div>
     </>
   );

@@ -11,6 +11,7 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import { Task, Status } from "../types";
 import TaskCard from "./TaskCard";
+import { useLang } from "../LanguageContext";
 
 interface ColumnConfig {
   id: Status;
@@ -25,6 +26,7 @@ interface ColumnConfig {
 interface ColumnProps extends ColumnConfig {
   tasks: Task[];
   onDelete: (id: string) => void;
+  dropHere: string;
 }
 
 const ColumnPanel: FC<ColumnProps> = ({
@@ -37,6 +39,7 @@ const ColumnPanel: FC<ColumnProps> = ({
   dotClass,
   tasks,
   onDelete,
+  dropHere,
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -79,7 +82,7 @@ const ColumnPanel: FC<ColumnProps> = ({
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <span className="opacity-50 text-xs italic">Drop tasks here</span>
+            <span className="opacity-50 text-xs italic">{dropHere}</span>
           </div>
         )}
         {tasks.map((task) => (
@@ -99,7 +102,7 @@ interface KanbanBoardProps {
 const COLUMNS: ColumnConfig[] = [
   {
     id: "todo",
-    title: "To Do",
+    title: "",
     headerClass: "bg-slate-700/60 text-slate-200",
     borderClass: "border-slate-600",
     bgClass: "bg-slate-800/40",
@@ -108,7 +111,7 @@ const COLUMNS: ColumnConfig[] = [
   },
   {
     id: "in-progress",
-    title: "In Progress",
+    title: "",
     headerClass: "bg-blue-900/60 text-blue-200",
     borderClass: "border-blue-700/50",
     bgClass: "bg-blue-950/30",
@@ -117,7 +120,7 @@ const COLUMNS: ColumnConfig[] = [
   },
   {
     id: "done",
-    title: "Done",
+    title: "",
     headerClass: "bg-emerald-900/60 text-emerald-200",
     borderClass: "border-emerald-700/50",
     bgClass: "bg-emerald-950/30",
@@ -131,6 +134,7 @@ const KanbanBoard: FC<KanbanBoardProps> = ({
   onStatusChange,
   onDelete,
 }) => {
+  const { tr } = useLang();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
@@ -166,14 +170,23 @@ const KanbanBoard: FC<KanbanBoardProps> = ({
       onDragEnd={handleDragEnd}
     >
       <div className="grid grid-cols-3 gap-4 h-full">
-        {COLUMNS.map((col) => (
+        {COLUMNS.map((col) => {
+          const titles: Record<string, string> = {
+            todo: tr.todo,
+            "in-progress": tr.inProgress,
+            done: tr.done,
+          };
+          return (
           <ColumnPanel
             key={col.id}
             {...col}
+            title={titles[col.id]}
             tasks={tasks.filter((t) => t.status === col.id)}
             onDelete={onDelete}
+            dropHere={tr.dropHere}
           />
-        ))}
+          );
+        })}
       </div>
 
       <DragOverlay>
