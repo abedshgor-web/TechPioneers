@@ -1,6 +1,6 @@
-export type Lang = "en" | "ar" | "fr" | "es" | "tr" | "de" | "zh";
+export type Lang = "en" | "ar" | "fr" | "es" | "tr" | "de" | "zh" | "he";
 
-export const rtlLangs: Lang[] = ["ar"];
+export const rtlLangs: Lang[] = ["ar", "he"];
 
 export const langLabels: Record<Lang, string> = {
   en: "🇬🇧 English",
@@ -10,6 +10,7 @@ export const langLabels: Record<Lang, string> = {
   tr: "🇹🇷 Türkçe",
   de: "🇩🇪 Deutsch",
   zh: "🇨🇳 中文",
+  he: "🇮🇱 עברית",
 };
 
 const translations = {
@@ -201,6 +202,33 @@ const translations = {
     pressEnter: "按 Enter 发送",
     failed: "获取AI响应失败，请重试。",
     connError: "连接错误，请检查服务器。",
+  },
+  he: {
+    appName: "TaskFlow AI",
+    tasksTotal: (n: number) => `סה"כ ${n} משימות`,
+    addTask: "הוסף משימה",
+    aiAssistant: "עוזר AI",
+    todo: "לביצוע",
+    inProgress: "בתהליך",
+    done: "הושלם",
+    dropHere: "גרור משימות לכאן",
+    addNewTask: "הוסף משימה חדשה",
+    title: "כותרת",
+    titleRequired: "כותרת נדרשת",
+    titlePlaceholder: "הכנס כותרת משימה...",
+    description: "תיאור",
+    descPlaceholder: "תיאור אופציונלי...",
+    priority: "עדיפות",
+    high: "גבוהה",
+    medium: "בינונית",
+    low: "נמוכה",
+    cancel: "ביטול",
+    add: "הוסף",
+    welcomeMsg: "שלום! אני עוזר ה-AI שלך לפריון. אני יכול לעזור לך לתעדף משימות, לתכנן את יומך או לענות על כל שאלה לגבי תהליך העבודה שלך.",
+    askPlaceholder: "שאל אותי כל שאלה...",
+    pressEnter: "לחץ Enter לשליחה",
+    failed: "נכשל בקבלת תגובת AI. אנא נסה שוב.",
+    connError: "שגיאת חיבור. בדוק אם השרת פועל.",
   },
 };
 
