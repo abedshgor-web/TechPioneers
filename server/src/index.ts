@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 import tasksRouter from "./routes/tasks";
 import aiRouter from "./routes/ai";
 
@@ -17,6 +18,12 @@ app.use("/api/ai", aiRouter);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", message: "TaskFlow AI server is running" });
+});
+
+const clientDist = path.join(__dirname, "../../client/dist");
+app.use(express.static(clientDist));
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(clientDist, "index.html"));
 });
 
 app.listen(PORT, () => {
