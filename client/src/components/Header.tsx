@@ -32,7 +32,7 @@ const Header: FC<HeaderProps> = ({ taskCount, onAddTask, aiOpen, onToggleAI }) =
         <select
           value={lang}
           onChange={(e) => setLang(e.target.value as Lang)}
-          className="px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors duration-150 border border-slate-600 outline-none cursor-pointer"
+          className="px-3 py-2 rounded-xl text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition-all duration-150 border border-slate-600 outline-none cursor-pointer"
         >
           {(Object.keys(langLabels) as Lang[]).map((l) => (
             <option key={l} value={l}>{langLabels[l]}</option>
@@ -41,18 +41,20 @@ const Header: FC<HeaderProps> = ({ taskCount, onAddTask, aiOpen, onToggleAI }) =
 
         <button
           onClick={onAddTask}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 shadow-lg shadow-indigo-500/20"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
           {tr.addTask}
         </button>
 
         <button
           onClick={onToggleAI}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${
-            aiOpen ? "bg-purple-600 hover:bg-purple-700 text-white" : "bg-slate-700 hover:bg-slate-600 text-slate-200"
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-95 ${
+            aiOpen
+              ? "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20"
+              : "bg-slate-700 hover:bg-slate-600 text-slate-200"
           }`}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
