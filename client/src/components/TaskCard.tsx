@@ -53,7 +53,7 @@ const TaskCard: FC<TaskCardProps> = ({ task, onDelete }) => {
       style={style}
       className={`relative bg-slate-800/90 rounded-xl border border-slate-700/80 shadow-md overflow-hidden
         hover:border-slate-500/80 hover:shadow-lg hover:-translate-y-0.5
-        transition-all duration-200 group select-none
+        transition-all duration-200 group select-none animate-slide-up
         ${isDragging ? "shadow-2xl ring-2 ring-indigo-400/60 scale-105" : ""}
       `}
     >

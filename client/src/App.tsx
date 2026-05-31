@@ -85,7 +85,7 @@ function App() {
         </main>
 
         {aiOpen && (
-          <aside className="w-96 border-l border-slate-700 flex flex-col bg-slate-900">
+          <aside className="w-96 border-l border-slate-700 flex flex-col bg-slate-900 animate-slide-in-right">
             <AIAssistant tasks={tasks} />
           </aside>
         )}
