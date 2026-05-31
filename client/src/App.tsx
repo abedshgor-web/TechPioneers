@@ -7,7 +7,7 @@ import AIAssistant from "./components/AIAssistant";
 import { useLang } from "./LanguageContext";
 
 function App() {
-  const { lang } = useLang();
+  const { isRTL } = useLang();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -61,7 +61,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col" dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-slate-950 flex flex-col" dir={isRTL ? "rtl" : "ltr"}>
       <Header
         taskCount={tasks.length}
         onAddTask={() => setShowAddModal(true)}

@@ -1,5 +1,6 @@
 import { FC } from "react";
 import { useLang } from "../LanguageContext";
+import { Lang, langLabels } from "../i18n";
 
 interface HeaderProps {
   taskCount: number;
@@ -9,7 +10,7 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ taskCount, onAddTask, aiOpen, onToggleAI }) => {
-  const { tr, toggle } = useLang();
+  const { tr, lang, setLang } = useLang();
 
   return (
     <header className="bg-navy-900 border-b border-slate-700 px-6 py-4 flex items-center justify-between shadow-lg">
@@ -28,12 +29,15 @@ const Header: FC<HeaderProps> = ({ taskCount, onAddTask, aiOpen, onToggleAI }) =
       </div>
 
       <div className="flex items-center gap-3">
-        <button
-          onClick={toggle}
-          className="px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors duration-150"
+        <select
+          value={lang}
+          onChange={(e) => setLang(e.target.value as Lang)}
+          className="px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors duration-150 border border-slate-600 outline-none cursor-pointer"
         >
-          {tr.switchLang}
-        </button>
+          {(Object.keys(langLabels) as Lang[]).map((l) => (
+            <option key={l} value={l}>{langLabels[l]}</option>
+          ))}
+        </select>
 
         <button
           onClick={onAddTask}
