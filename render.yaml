@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: taskflow-ai
+    name: TechPioneers
     runtime: node
     buildCommand: npm run build
     startCommand: npm start
