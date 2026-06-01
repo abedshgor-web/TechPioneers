@@ -66,9 +66,9 @@ const TaskCard: FC<TaskCardProps> = ({ task, onDelete }) => {
           <div
             {...attributes}
             {...listeners}
-            className="flex-1 cursor-grab active:cursor-grabbing"
+            className="flex-1 min-w-0 cursor-grab active:cursor-grabbing"
           >
-            <h3 className="text-sm font-semibold text-slate-100 leading-snug">
+            <h3 className="text-sm font-semibold text-slate-100 leading-snug break-words">
               {task.title}
             </h3>
           </div>
@@ -87,7 +87,7 @@ const TaskCard: FC<TaskCardProps> = ({ task, onDelete }) => {
         </div>
 
         {task.description && (
-          <p className="text-xs text-slate-400 mb-3 leading-relaxed line-clamp-2">
+          <p className="text-xs text-slate-400 mb-3 leading-relaxed break-words line-clamp-3">
             {task.description}
           </p>
         )}
