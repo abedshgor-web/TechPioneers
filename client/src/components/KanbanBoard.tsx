@@ -45,7 +45,7 @@ const ColumnPanel: FC<ColumnProps> = ({
 
   return (
     <div
-      className={`flex flex-col rounded-xl border ${borderClass} ${bgClass} transition-all duration-150 ${
+      className={`flex flex-col rounded-xl border ${borderClass} ${bgClass} transition-all duration-150 flex-shrink-0 w-[80vw] sm:w-auto sm:flex-1 snap-center ${
         isOver ? "ring-2 ring-indigo-400" : ""
       }`}
     >
@@ -169,7 +169,7 @@ const KanbanBoard: FC<KanbanBoardProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-3 gap-4 h-full">
+      <div className="flex gap-3 h-full overflow-x-auto pb-2 scrollbar-thin snap-x snap-mandatory" style={{ WebkitOverflowScrolling: "touch" }}>
         {COLUMNS.map((col) => {
           const titles: Record<string, string> = {
             todo: tr.todo,
