@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // On mount, validate token from localStorage
   useEffect(() => {
-    const storedToken = localStorage.getItem("taskflow_token");
+    const storedToken = localStorage.getItem("copytrade_token");
     if (!storedToken) {
       setLoading(false);
       return;
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(userData);
       })
       .catch(() => {
-        localStorage.removeItem("taskflow_token");
+        localStorage.removeItem("copytrade_token");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const data = (await res.json()) as { token: string; user: User };
-    localStorage.setItem("taskflow_token", data.token);
+    localStorage.setItem("copytrade_token", data.token);
     setToken(data.token);
     setUser(data.user);
   };
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const data = (await res.json()) as { token: string; user: User };
-    localStorage.setItem("taskflow_token", data.token);
+    localStorage.setItem("copytrade_token", data.token);
     setToken(data.token);
     setUser(data.user);
   };
