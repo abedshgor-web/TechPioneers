@@ -1,116 +1,143 @@
-import { Router, Request, Response } from "express";
+import { Router, Response } from "express";
+import db from "../db";
+import { requireAuth, AuthRequest } from "../middleware/auth";
 
 const router = Router();
 
-interface Task {
+// All task routes require authentication
+router.use(requireAuth);
+
+interface TaskRow {
   id: string;
+  user_id: string;
   title: string;
   description: string;
   priority: "high" | "medium" | "low";
   status: "todo" | "in-progress" | "done";
-  createdAt: string;
+  created_at: string;
 }
 
-// In-memory storage
-const tasks: Task[] = [
-  {
-    id: "1",
-    title: "Design system architecture",
-    description: "Plan the overall system design and component structure",
-    priority: "high",
-    status: "done",
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: "2",
-    title: "Implement authentication",
-    description: "Add user login and registration with JWT tokens",
-    priority: "high",
-    status: "in-progress",
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: "3",
-    title: "Write unit tests",
-    description: "Cover critical business logic with unit tests",
-    priority: "medium",
-    status: "todo",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "4",
-    title: "Update documentation",
-    description: "Keep README and API docs up to date",
-    priority: "low",
-    status: "todo",
-    createdAt: new Date().toISOString(),
-  },
-];
-
-let nextId = 5;
+function rowToTask(row: TaskRow) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    priority: row.priority,
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
 
 // GET /api/tasks
-router.get("/", (_req: Request, res: Response) => {
-  res.json(tasks);
+router.get("/", (req: AuthRequest, res: Response): void => {
+  if (!req.user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const rows = db.prepare("SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC").all(req.user.id) as TaskRow[];
+  res.json(rows.map(rowToTask));
 });
 
 // POST /api/tasks
-router.post("/", (req: Request, res: Response) => {
+router.post("/", (req: AuthRequest, res: Response): void => {
+  if (!req.user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  // Enforce free plan limit
+  if (req.user.plan === "free") {
+    const count = (db.prepare("SELECT COUNT(*) as count FROM tasks WHERE user_id = ?").get(req.user.id) as { count: number }).count;
+    if (count >= 5) {
+      res.status(403).json({
+        error: "limit",
+        message: "Free plan is limited to 5 tasks. Upgrade to Pro for unlimited tasks.",
+      });
+      return;
+    }
+  }
+
   const { title, description, priority } = req.body;
 
   if (!title || typeof title !== "string") {
-    return res.status(400).json({ error: "Title is required" });
+    res.status(400).json({ error: "Title is required" });
+    return;
   }
 
-  const task: Task = {
-    id: String(nextId++),
-    title: title.trim(),
-    description: description?.trim() || "",
-    priority: (["high", "medium", "low"].includes(priority) ? priority : "medium") as Task["priority"],
-    status: "todo",
-    createdAt: new Date().toISOString(),
-  };
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const validPriority = (["high", "medium", "low"].includes(priority) ? priority : "medium") as TaskRow["priority"];
 
-  tasks.push(task);
-  return res.status(201).json(task);
+  db.prepare(
+    "INSERT INTO tasks (id, user_id, title, description, priority, status, created_at) VALUES (?, ?, ?, ?, ?, 'todo', ?)"
+  ).run(id, req.user.id, title.trim(), (description as string)?.trim() || "", validPriority, createdAt);
+
+  const row = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow;
+  res.status(201).json(rowToTask(row));
 });
 
 // PUT /api/tasks/:id
-router.put("/:id", (req: Request, res: Response) => {
-  const { id } = req.params;
-  const index = tasks.findIndex((t) => t.id === id);
+router.put("/:id", (req: AuthRequest, res: Response): void => {
+  if (!req.user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
 
-  if (index === -1) {
-    return res.status(404).json({ error: "Task not found" });
+  const { id } = req.params;
+  const row = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow | undefined;
+
+  if (!row) {
+    res.status(404).json({ error: "Task not found" });
+    return;
+  }
+
+  if (row.user_id !== req.user.id) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
   }
 
   const { title, description, priority, status } = req.body;
-  const task = tasks[index];
 
-  if (title !== undefined) task.title = title.trim();
-  if (description !== undefined) task.description = description.trim();
-  if (priority && ["high", "medium", "low"].includes(priority)) {
-    task.priority = priority;
-  }
-  if (status && ["todo", "in-progress", "done"].includes(status)) {
-    task.status = status;
-  }
+  const newTitle = title !== undefined ? (title as string).trim() : row.title;
+  const newDescription = description !== undefined ? (description as string).trim() : row.description;
+  const newPriority = (priority && ["high", "medium", "low"].includes(priority as string))
+    ? (priority as TaskRow["priority"])
+    : row.priority;
+  const newStatus = (status && ["todo", "in-progress", "done"].includes(status as string))
+    ? (status as TaskRow["status"])
+    : row.status;
 
-  tasks[index] = task;
-  return res.json(task);
+  db.prepare(
+    "UPDATE tasks SET title = ?, description = ?, priority = ?, status = ? WHERE id = ?"
+  ).run(newTitle, newDescription, newPriority, newStatus, id);
+
+  const updated = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow;
+  res.json(rowToTask(updated));
 });
 
 // DELETE /api/tasks/:id
-router.delete("/:id", (req: Request, res: Response) => {
-  const { id } = req.params;
-  const index = tasks.findIndex((t) => t.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ error: "Task not found" });
+router.delete("/:id", (req: AuthRequest, res: Response): void => {
+  if (!req.user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
   }
 
-  tasks.splice(index, 1);
-  return res.status(204).send();
+  const { id } = req.params;
+  const row = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow | undefined;
+
+  if (!row) {
+    res.status(404).json({ error: "Task not found" });
+    return;
+  }
+
+  if (row.user_id !== req.user.id) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+  res.status(204).send();
 });
 
 export default router;

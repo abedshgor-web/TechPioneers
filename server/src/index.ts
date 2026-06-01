@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import path from "path";
 import tasksRouter from "./routes/tasks";
 import aiRouter from "./routes/ai";
+import authRouter from "./routes/auth";
+import subscriptionsRouter from "./routes/subscriptions";
 
 dotenv.config();
 
@@ -11,8 +13,17 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
+
+// Raw body for Stripe webhook MUST come before express.json()
+app.use(
+  "/api/subscriptions/webhook",
+  express.raw({ type: "application/json" })
+);
+
 app.use(express.json());
 
+app.use("/api/auth", authRouter);
+app.use("/api/subscriptions", subscriptionsRouter);
 app.use("/api/tasks", tasksRouter);
 app.use("/api/ai", aiRouter);
 

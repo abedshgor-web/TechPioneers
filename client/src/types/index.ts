@@ -1,6 +1,13 @@
 export type Priority = "high" | "medium" | "low";
 export type Status = "todo" | "in-progress" | "done";
 
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  plan: "free" | "pro";
+}
+
 export interface Task {
   id: string;
   title: string;
