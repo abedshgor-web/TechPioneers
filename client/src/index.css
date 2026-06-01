@@ -7,8 +7,9 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-slate-950 text-slate-100 min-h-screen;
+    @apply bg-[#080c14] text-slate-100 min-h-screen;
     -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv11", "ss01";
   }
   button, select, input, textarea {
     transition-property: color, background-color, border-color, transform, opacity, box-shadow;
@@ -20,16 +21,38 @@
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #334155 transparent;
+    scrollbar-color: #1e293b transparent;
   }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: #334155;
-    border-radius: 3px;
+    background-color: #1e293b;
+    border-radius: 2px;
+  }
+  .glass {
+    backdrop-filter: blur(12px);
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .card {
+    @apply bg-[#0f1520] border border-[#1a2235] rounded-xl;
+  }
+  .card-hover {
+    @apply card hover:border-[#2a3a55] transition-all duration-200;
+  }
+  .profit { @apply text-emerald-400; }
+  .loss   { @apply text-red-400; }
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+  }
+  .glow-green {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+  }
+  .ticker-scroll {
+    animation: ticker 30s linear infinite;
+  }
+  @keyframes ticker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
 }

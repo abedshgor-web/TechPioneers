@@ -3,6 +3,7 @@ import { Trader, CopySubscription, Trade } from "../types";
 import { useLang } from "../LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
 import PerformanceChart from "../components/PerformanceChart";
+import MonthlyReturnsGrid from "../components/MonthlyReturnsGrid";
 import CopyModal from "../components/CopyModal";
 
 interface Props {
@@ -10,11 +11,18 @@ interface Props {
   onBack: () => void;
 }
 
-const riskColors: Record<string, string> = {
-  low: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-  medium: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-  high: "text-red-400 bg-red-400/10 border-red-400/20",
+const RISK_BADGE: Record<string, string> = {
+  low:    "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+  medium: "text-amber-400  bg-amber-400/10  border-amber-400/20",
+  high:   "text-red-400    bg-red-400/10    border-red-400/20",
 };
+
+const AVATAR_GRADS = ["from-blue-500 to-indigo-700","from-emerald-500 to-teal-700","from-violet-500 to-purple-700","from-amber-500 to-orange-700","from-cyan-500 to-blue-700","from-rose-500 to-red-700"];
+
+function sharpe(trader: Trader): string {
+  const ratio = (trader.monthly_profit_pct / 100) / ((trader.max_drawdown / 100) * 0.7);
+  return ratio.toFixed(2);
+}
 
 export default function TraderProfilePage({ traderId, onBack }: Props) {
   const { tr } = useLang();
@@ -24,20 +32,14 @@ export default function TraderProfilePage({ traderId, onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [showCopyModal, setShowCopyModal] = useState(false);
 
-  const authHeaders = (): HeadersInit => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  });
+  const authH: HeadersInit = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/traders/${traderId}`).then((r) => r.json()),
-      fetch("/api/copy/subscriptions", { headers: authHeaders() }).then((r) => r.json()),
+      fetch("/api/copy/subscriptions", { headers: authH }).then((r) => r.json()),
     ])
-      .then(([t, s]: [Trader, CopySubscription[]]) => {
-        setTrader(t);
-        setSubscriptions(s.filter((sub) => sub.status === "active"));
-      })
+      .then(([t, s]: [Trader, CopySubscription[]]) => { setTrader(t); setSubscriptions(s.filter((s) => s.status === "active")); })
       .finally(() => setLoading(false));
   }, [traderId]);
 
@@ -46,162 +48,195 @@ export default function TraderProfilePage({ traderId, onBack }: Props) {
 
   const handleCopy = async (lotMultiplier: number, riskPct: number) => {
     const res = await fetch("/api/copy/subscribe", {
-      method: "POST",
-      headers: authHeaders(),
+      method: "POST", headers: authH,
       body: JSON.stringify({ trader_id: traderId, lot_multiplier: lotMultiplier, risk_pct: riskPct }),
     });
-    if (!res.ok) {
-      const data = (await res.json()) as { error?: string };
-      throw new Error(data.error ?? tr.error);
-    }
+    if (!res.ok) throw new Error(((await res.json()) as { error?: string }).error ?? tr.error);
     const sub = (await res.json()) as CopySubscription;
     setSubscriptions((prev) => [...prev, sub]);
+    setShowCopyModal(false);
   };
 
   const handleStop = async () => {
     if (!activeSubId) return;
-    await fetch(`/api/copy/${activeSubId}`, { method: "DELETE", headers: authHeaders() });
+    await fetch(`/api/copy/${activeSubId}`, { method: "DELETE", headers: authH });
     setSubscriptions((prev) => prev.filter((s) => s.id !== activeSubId));
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-4 animate-pulse">
+        <div className="h-5 bg-surface-overlay rounded w-20" />
+        <div className="card h-36 p-6 space-y-3">
+          <div className="flex gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-surface-overlay" />
+            <div className="flex-1 space-y-2">
+              <div className="h-5 bg-surface-overlay rounded w-1/3" />
+              <div className="h-3 bg-surface-overlay rounded w-1/2" />
+            </div>
+          </div>
+        </div>
+        <div className="card h-52" />
       </div>
     );
   }
   if (!trader) return <div className="text-slate-400 p-8">{tr.error}</div>;
 
-  const avatarColors = ["from-blue-500 to-indigo-600", "from-emerald-500 to-teal-600", "from-purple-500 to-pink-600", "from-orange-500 to-amber-600", "from-cyan-500 to-blue-600", "from-rose-500 to-red-600"];
-  const grad = avatarColors[parseInt(trader.id.replace(/\D/g, "").slice(-1)) % avatarColors.length];
+  const num = parseInt(trader.id.replace(/\D/g, "").slice(-1)) || 0;
+  const grad = AVATAR_GRADS[num % AVATAR_GRADS.length];
+
+  const startEquity = trader.snapshots?.[0]?.equity ?? 10000;
+  const endEquity = trader.snapshots?.[trader.snapshots.length - 1]?.equity ?? 10000;
+  const absReturn = endEquity - startEquity;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       {/* Back */}
-      <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors">
-        ← {tr.back}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-slate-500 hover:text-white text-sm transition-colors group"
+      >
+        <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path d="M15 19l-7-7 7-7" />
+        </svg>
+        {tr.back}
       </button>
 
-      {/* Hero */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      {/* Hero card */}
+      <div className="card p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
           <div className="flex items-start gap-4">
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-2xl flex-shrink-0`}>
+            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-black text-2xl shadow-xl shrink-0`}>
               {trader.avatar}
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold text-white">{trader.name}</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-black text-white">{trader.name}</h1>
                 {trader.verified ? (
-                  <span className="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full px-2 py-0.5">
+                  <span className="text-xs bg-blue-500/15 text-blue-400 border border-blue-500/20 rounded-full px-2 py-0.5">
                     ✓ {tr.verified}
                   </span>
                 ) : null}
-                <span className={`text-xs px-2 py-0.5 rounded-full border ${riskColors[trader.risk_level]}`}>
-                  {tr[trader.risk_level as "low" | "medium" | "high"]}
+                <span className={`text-xs px-2 py-0.5 rounded-full border ${RISK_BADGE[trader.risk_level]}`}>
+                  {tr[trader.risk_level as "low" | "medium" | "high"]} {tr.risk}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-slate-400 text-sm mt-1 flex-wrap">
+              <div className="flex flex-wrap items-center gap-2 text-slate-400 text-sm mt-1.5">
                 <span>{trader.country_flag} {trader.country}</span>
-                <span>·</span>
+                <span className="text-slate-700">·</span>
                 <span>{trader.strategy}</span>
-                <span>·</span>
-                <span>👥 {trader.followers.toLocaleString()} {tr.followers}</span>
+                <span className="text-slate-700">·</span>
+                <span>👥 {trader.followers.toLocaleString()}</span>
               </div>
+              <p className="text-slate-500 text-sm mt-2.5 leading-relaxed max-w-lg">{trader.description}</p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             {isCopying ? (
               <button
                 onClick={handleStop}
-                className="px-4 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 text-sm transition-colors"
+                className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-sm font-semibold transition-all"
               >
                 {tr.stopCopying}
               </button>
             ) : (
               <button
                 onClick={() => setShowCopyModal(true)}
-                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors"
+                className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm transition-all shadow-lg shadow-brand-600/20 hover:shadow-brand-500/30 hover:-translate-y-px"
               >
                 {tr.startCopying}
               </button>
             )}
           </div>
         </div>
-
-        {/* About */}
-        <p className="text-slate-400 text-sm mt-4 leading-relaxed">{trader.description}</p>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
         {[
-          { label: tr.totalProfit, value: `+${trader.total_profit_pct.toFixed(1)}%`, cls: "text-emerald-400" },
+          { label: tr.totalProfit,   value: `+${trader.total_profit_pct.toFixed(1)}%`, cls: "text-emerald-400" },
           { label: tr.monthlyProfit, value: `+${trader.monthly_profit_pct.toFixed(1)}%`, cls: "text-emerald-400" },
-          { label: tr.winRate, value: `${trader.win_rate.toFixed(1)}%`, cls: "text-white" },
-          { label: tr.maxDrawdown, value: `-${trader.max_drawdown.toFixed(1)}%`, cls: "text-red-400" },
-          { label: tr.trades, value: trader.total_trades.toLocaleString(), cls: "text-white" },
-          { label: tr.avgDuration, value: trader.avg_trade_duration, cls: "text-white" },
+          { label: tr.winRate,       value: `${trader.win_rate.toFixed(1)}%`, cls: "text-white" },
+          { label: tr.maxDrawdown,   value: `-${trader.max_drawdown.toFixed(1)}%`, cls: "text-red-400" },
+          { label: tr.trades,        value: trader.total_trades.toLocaleString(), cls: "text-white" },
+          { label: tr.avgDuration,   value: trader.avg_trade_duration, cls: "text-slate-300" },
+          { label: "Sharpe Ratio",   value: sharpe(trader), cls: parseFloat(sharpe(trader)) >= 1.5 ? "text-emerald-400" : "text-amber-400" },
         ].map((s) => (
-          <div key={s.label} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center">
-            <div className={`text-lg font-bold ${s.cls}`}>{s.value}</div>
-            <div className="text-slate-500 text-xs mt-0.5">{s.label}</div>
+          <div key={s.label} className="card p-3 text-center hover:border-border-strong transition-all">
+            <div className={`text-base font-black ${s.cls}`}>{s.value}</div>
+            <div className="text-slate-600 text-[10px] mt-0.5 leading-tight">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Performance chart */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h2 className="text-white font-semibold mb-4">{tr.performanceChart}</h2>
-        <div style={{ height: 200 }}>
-          {trader.snapshots && trader.snapshots.length > 0 ? (
-            <PerformanceChart data={trader.snapshots} height={200} showGrid={true} />
-          ) : (
-            <div className="h-full flex items-center justify-center text-slate-500">No chart data</div>
-          )}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-white font-bold">{tr.performanceChart}</h2>
+          <div className="flex items-center gap-3 text-xs text-slate-500">
+            <span>$10,000 → <span className={endEquity >= startEquity ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>${endEquity.toLocaleString("en", {maximumFractionDigits:0})}</span></span>
+            <span className={absReturn >= 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
+              {absReturn >= 0 ? "+" : ""}${absReturn.toFixed(0)}
+            </span>
+          </div>
         </div>
+        <PerformanceChart
+          data={trader.snapshots ?? []}
+          height={220}
+          showGrid={true}
+          showTooltip={true}
+        />
       </div>
 
-      {/* Recent trades */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800">
-          <h2 className="text-white font-semibold">{tr.recentTrades}</h2>
+      {/* Monthly returns */}
+      {(trader.snapshots?.length ?? 0) > 0 && (
+        <div className="card p-5">
+          <MonthlyReturnsGrid snapshots={trader.snapshots ?? []} label={tr.monthlyProfit + " Breakdown"} />
         </div>
-        <div className="overflow-x-auto">
+      )}
+
+      {/* Recent trades */}
+      <div className="card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-white font-bold">{tr.recentTrades}</h2>
+          <span className="text-slate-600 text-xs">{(trader.recentTrades?.length ?? 0)} trades shown</span>
+        </div>
+        <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-slate-500 text-xs border-b border-slate-800">
-                <th className="px-4 py-3 text-start">{tr.symbol}</th>
-                <th className="px-4 py-3 text-start">{tr.direction}</th>
-                <th className="px-4 py-3 text-end">{tr.openPrice}</th>
-                <th className="px-4 py-3 text-end">{tr.closePrice}</th>
-                <th className="px-4 py-3 text-end">{tr.pips}</th>
-                <th className="px-4 py-3 text-end">{tr.date}</th>
+              <tr className="border-b border-border">
+                {[tr.symbol, tr.direction, tr.openPrice, tr.closePrice, tr.pips, tr.date].map((h) => (
+                  <th key={h} className="px-4 py-3 text-start text-xs text-slate-600 font-medium uppercase tracking-wider">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {(trader.recentTrades ?? []).map((trade: Trade) => {
-                const positive = trade.profit_pips >= 0;
+              {(trader.recentTrades ?? []).map((trade: Trade, i: number) => {
+                const pos = trade.profit_pips >= 0;
                 return (
-                  <tr key={trade.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                    <td className="px-4 py-3 text-white font-mono font-medium">{trade.symbol}</td>
+                  <tr
+                    key={trade.id}
+                    className={`border-b border-border/40 hover:bg-surface-overlay/50 transition-colors ${i % 2 === 0 ? "" : "bg-surface-overlay/20"}`}
+                  >
+                    <td className="px-4 py-3 text-white font-mono font-bold">{trade.symbol}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                      <span className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-md ${
                         trade.direction === "buy"
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-red-500/20 text-red-400"
+                          ? "bg-emerald-500/15 text-emerald-400"
+                          : "bg-red-500/15 text-red-400"
                       }`}>
-                        {trade.direction === "buy" ? tr.buy : tr.sell}
+                        {trade.direction === "buy" ? "▲ " + tr.buy : "▼ " + tr.sell}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-300 text-end font-mono">{trade.open_price.toFixed(4)}</td>
-                    <td className="px-4 py-3 text-slate-300 text-end font-mono">{trade.close_price?.toFixed(4) ?? "—"}</td>
-                    <td className={`px-4 py-3 text-end font-mono font-semibold ${positive ? "text-emerald-400" : "text-red-400"}`}>
-                      {positive ? "+" : ""}{trade.profit_pips?.toFixed(1) ?? "—"}
+                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{trade.open_price.toFixed(4)}</td>
+                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{trade.close_price?.toFixed(4) ?? "—"}</td>
+                    <td className={`px-4 py-3 font-mono font-bold text-xs ${pos ? "text-emerald-400" : "text-red-400"}`}>
+                      {pos ? "+" : ""}{trade.profit_pips?.toFixed(1) ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-end text-xs">
+                    <td className="px-4 py-3 text-slate-600 text-xs">
                       {trade.closed_at ? new Date(trade.closed_at).toLocaleDateString() : "—"}
                     </td>
                   </tr>
@@ -213,11 +248,7 @@ export default function TraderProfilePage({ traderId, onBack }: Props) {
       </div>
 
       {showCopyModal && (
-        <CopyModal
-          trader={trader}
-          onConfirm={handleCopy}
-          onClose={() => setShowCopyModal(false)}
-        />
+        <CopyModal trader={trader} onConfirm={handleCopy} onClose={() => setShowCopyModal(false)} />
       )}
     </div>
   );
