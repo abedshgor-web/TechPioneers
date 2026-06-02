@@ -11,14 +11,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Tajawal', 'sans-serif'] },
-          colors: {
-            brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' }
-          }
-        }
-      }
+      theme: { extend: {
+        fontFamily: { sans: ['Tajawal', 'sans-serif'] },
+        colors: { brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' } }
+      } }
     }
   </script>
   <style>
@@ -28,135 +24,195 @@
     @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
     .navbtn.active{ color:#4f46e5; } .navbtn.active .navicon{ background:#eef2ff; transform:translateY(-2px); }
     .toast{ animation:up .3s ease; } @keyframes up{ from{opacity:0; transform:translate(-50%,12px);} to{opacity:1; transform:translate(-50%,0);} }
+    .hidden-imp{ display:none !important; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
 
-  <!-- ===== Header ===== -->
-  <header class="sticky top-0 z-30 bg-gradient-to-l from-brand-700 to-brand-500 text-white shadow-lg">
-    <div class="max-w-3xl mx-auto px-4 pt-3 pb-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center font-extrabold text-lg">N</div>
+  <!-- ===================== AUTH SCREEN ===================== -->
+  <div id="auth" class="min-h-screen bg-gradient-to-br from-brand-700 via-brand-600 to-fuchsia-600 flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+      <div class="text-center text-white mb-6">
+        <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center font-extrabold text-3xl mx-auto mb-3">N</div>
+        <div class="text-2xl font-extrabold">Nexus CRM</div>
+        <div class="text-white/80 text-sm">نظام إدارة علاقات العملاء للشركات</div>
+      </div>
+      <div class="bg-white rounded-3xl shadow-2xl p-6">
+        <!-- Tabs -->
+        <div class="grid grid-cols-2 bg-slate-100 rounded-xl p-1 mb-5 text-sm font-bold">
+          <button id="tabSignup" onclick="setAuthMode('signup')" class="py-2 rounded-lg bg-white shadow text-brand-700">حساب جديد</button>
+          <button id="tabLogin" onclick="setAuthMode('login')" class="py-2 rounded-lg text-slate-500">تسجيل الدخول</button>
+        </div>
+
+        <!-- Signup -->
+        <form id="signupForm" onsubmit="return doSignup(event)" class="space-y-3">
           <div>
-            <div class="font-extrabold text-lg leading-none">Nexus <span class="font-medium text-white/80 text-sm">CRM</span></div>
-            <div class="text-[11px] text-white/70 leading-none mt-0.5">إدارة علاقات العملاء</div>
+            <label class="text-xs font-bold text-slate-500">الاسم الكامل</label>
+            <input id="su_name" required placeholder="مثال: عبدالله" class="w-full mt-1 bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500">اسم الشركة (Tenant)</label>
+            <input id="su_company" required placeholder="مثال: شركة التقنيات الرائدة" class="w-full mt-1 bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500">البريد الإلكتروني</label>
+            <input id="su_email" type="email" required placeholder="you@company.com" class="w-full mt-1 bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500">كلمة المرور</label>
+            <input id="su_pass" type="password" required placeholder="••••••••" class="w-full mt-1 bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+          </div>
+          <button class="w-full bg-gradient-to-l from-brand-700 to-brand-500 text-white font-bold py-3 rounded-xl shadow-lg mt-2">🚀 ابدأ التجربة المجانية ١٤ يوماً</button>
+          <p class="text-center text-[11px] text-slate-400">تجربة كاملة ١٤ يوماً — بدون بطاقة ائتمان</p>
+        </form>
+
+        <!-- Login -->
+        <form id="loginForm" onsubmit="return doLogin(event)" class="space-y-3 hidden-imp">
+          <div>
+            <label class="text-xs font-bold text-slate-500">البريد الإلكتروني</label>
+            <input id="li_email" type="email" required placeholder="you@company.com" class="w-full mt-1 bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-500">كلمة المرور</label>
+            <input id="li_pass" type="password" required placeholder="••••••••" class="w-full mt-1 bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+          </div>
+          <button class="w-full bg-gradient-to-l from-brand-700 to-brand-500 text-white font-bold py-3 rounded-xl shadow-lg mt-2">دخول</button>
+          <p class="text-center text-[11px] text-slate-400">جرّب أي بريد وكلمة مرور (نسخة تجريبية)</p>
+        </form>
+      </div>
+      <p class="text-center text-white/70 text-[11px] mt-4">© 2026 Nexus CRM — نسخة عرض</p>
+    </div>
+  </div>
+
+  <!-- ===================== APP ===================== -->
+  <div id="app" class="hidden-imp">
+    <!-- Header -->
+    <header class="sticky top-0 z-30 bg-gradient-to-l from-brand-700 to-brand-500 text-white shadow-lg">
+      <div class="max-w-3xl mx-auto px-4 pt-3 pb-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center font-extrabold text-lg">N</div>
+            <div>
+              <div class="font-extrabold text-lg leading-none">Nexus <span class="font-medium text-white/80 text-sm">CRM</span></div>
+              <div id="hdrCompany" class="text-[11px] text-white/70 leading-none mt-0.5">—</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="toast('🔔 لا إشعارات جديدة')" class="w-9 h-9 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center relative">🔔<span class="absolute top-1 left-1 w-2 h-2 bg-rose-400 rounded-full"></span></button>
+            <div id="hdrAvatar" class="w-9 h-9 rounded-xl bg-white text-brand-700 flex items-center justify-center font-bold">N</div>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button onclick="toast('🔔 لا إشعارات جديدة')" class="w-9 h-9 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center relative">
-            🔔<span class="absolute top-1 left-1 w-2 h-2 bg-rose-400 rounded-full"></span>
-          </button>
-          <div class="w-9 h-9 rounded-xl bg-white text-brand-700 flex items-center justify-center font-bold">عـ</div>
+        <div class="mt-3 bg-white/15 backdrop-blur rounded-xl px-3 py-2 flex items-center justify-between">
+          <div class="flex items-center gap-2 text-sm"><span>⏳</span><span>تجربة مجانية — <b id="trialDays">باقٍ ١٤ يوماً</b></span></div>
+          <button onclick="go('account')" class="bg-white text-brand-700 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-brand-50">ترقية</button>
         </div>
       </div>
-      <!-- Trial banner -->
-      <div class="mt-3 bg-white/15 backdrop-blur rounded-xl px-3 py-2 flex items-center justify-between">
-        <div class="flex items-center gap-2 text-sm">
-          <span>⏳</span><span>تجربة مجانية — <b>باقٍ ١٤ يوماً</b></span>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 pb-28 pt-5">
+      <!-- Dashboard -->
+      <section id="dashboard" class="view active">
+        <h1 class="text-xl font-extrabold mb-1">لوحة التحكم</h1>
+        <p class="text-slate-500 text-sm mb-4">مرحباً <span id="greetName">بك</span> 👋 إليك ملخّص أدائك اليوم</p>
+        <div id="kpis" class="grid grid-cols-2 gap-3 mb-5"></div>
+        <div class="bg-white rounded-2xl shadow-sm p-4 mb-5">
+          <div class="flex items-center justify-between mb-3"><h3 class="font-bold">الإيرادات (آخر ٧ أشهر)</h3><span class="text-emerald-600 text-sm font-bold">▲ ٪١٨</span></div>
+          <div id="chart" class="flex items-end justify-between gap-2 h-36"></div>
         </div>
-        <button onclick="toast('🚀 صفحة الاشتراك (تجريبي)')" class="bg-white text-brand-700 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-brand-50">ترقية الاشتراك</button>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="bg-white rounded-2xl shadow-sm p-4"><h3 class="font-bold mb-3">أحدث الأنشطة</h3><div id="activities" class="space-y-3"></div></div>
+          <div class="bg-white rounded-2xl shadow-sm p-4"><h3 class="font-bold mb-3">صفقات قاربت الإغلاق</h3><div id="closing" class="space-y-3"></div></div>
+        </div>
+      </section>
+
+      <!-- Contacts -->
+      <section id="contacts" class="view">
+        <div class="flex items-center justify-between mb-4">
+          <h1 class="text-xl font-extrabold">جهات الاتصال</h1>
+          <button onclick="openModal()" class="bg-brand-600 text-white text-sm font-bold px-3 py-2 rounded-xl hover:bg-brand-700">+ جديد</button>
+        </div>
+        <input id="search" oninput="renderContacts()" placeholder="🔍 ابحث بالاسم أو الشركة…" class="w-full bg-white rounded-xl px-4 py-3 mb-4 text-sm shadow-sm outline-none focus:ring-2 ring-brand-300" />
+        <div id="contactList" class="space-y-3"></div>
+      </section>
+
+      <!-- Pipeline -->
+      <section id="pipeline" class="view">
+        <div class="flex items-center justify-between mb-4"><h1 class="text-xl font-extrabold">خط الصفقات</h1><span class="text-sm text-slate-500">إجمالي: <b id="pipeTotal" class="text-brand-700"></b></span></div>
+        <div id="board" class="flex gap-3 overflow-x-auto no-scrollbar pb-2"></div>
+      </section>
+
+      <!-- Leads -->
+      <section id="leads" class="view">
+        <h1 class="text-xl font-extrabold mb-1">العملاء المحتملون</h1>
+        <p class="text-slate-500 text-sm mb-4">مرتّبون حسب تقييم الذكاء الاصطناعي ✨</p>
+        <div id="leadList" class="space-y-3"></div>
+      </section>
+
+      <!-- Account -->
+      <section id="account" class="view">
+        <h1 class="text-xl font-extrabold mb-4">حسابي</h1>
+        <div class="bg-white rounded-2xl shadow-sm p-5 mb-4 flex items-center gap-4">
+          <div id="accAvatar" class="w-16 h-16 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-2xl font-extrabold">N</div>
+          <div>
+            <div id="accName" class="font-bold text-lg">—</div>
+            <div id="accCompany" class="text-slate-500 text-sm">—</div>
+            <span class="inline-block mt-1 text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">باقة التجربة</span>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm divide-y">
+          <div class="p-4 flex items-center justify-between"><span>🏢 إدارة المستأجر (Tenant)</span><span class="text-slate-400">›</span></div>
+          <div class="p-4 flex items-center justify-between"><span>👥 المستخدمون والصلاحيات</span><span class="text-slate-400">›</span></div>
+          <div class="p-4 flex items-center justify-between"><span>🔌 التكاملات</span><span class="text-slate-400">›</span></div>
+          <div class="p-4 flex items-center justify-between"><span>🌐 اللغة: العربية</span><span class="text-slate-400">›</span></div>
+        </div>
+        <button onclick="toast('🚀 الترقية إلى الباقة الاحترافية (تجريبي)')" class="w-full mt-4 bg-gradient-to-l from-brand-700 to-brand-500 text-white font-bold py-3 rounded-2xl shadow-lg">⭐ ترقية إلى الباقة الاحترافية</button>
+        <button onclick="logout()" class="w-full mt-3 bg-white text-rose-600 font-bold py-3 rounded-2xl shadow-sm border border-rose-100">تسجيل الخروج</button>
+        <p class="text-center text-xs text-slate-400 mt-4">Nexus CRM — نسخة عرض تجريبية (بيانات وهمية)</p>
+      </section>
+    </main>
+
+    <button onclick="toast('✨ مساعد Nexus الذكي: كيف أساعدك؟ (تجريبي)')" class="fixed bottom-24 left-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-fuchsia-500 to-brand-600 text-white text-2xl shadow-xl flex items-center justify-center active:scale-95">✨</button>
+
+    <nav class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 shadow-2xl">
+      <div class="max-w-3xl mx-auto grid grid-cols-5 px-2 py-2">
+        <button data-target="dashboard" class="navbtn active flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1"><span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">📊</span>الرئيسية</button>
+        <button data-target="contacts" class="navbtn flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1"><span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">👥</span>جهات الاتصال</button>
+        <button data-target="pipeline" class="navbtn flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1"><span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">💼</span>الصفقات</button>
+        <button data-target="leads" class="navbtn flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1"><span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">🎯</span>المحتملون</button>
+        <button data-target="account" class="navbtn flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1"><span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">⚙️</span>حسابي</button>
       </div>
+    </nav>
+  </div>
+
+  <!-- ===================== ADD CONTACT MODAL ===================== -->
+  <div id="modal" class="hidden-imp fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between mb-4"><h3 class="font-extrabold text-lg">جهة اتصال جديدة</h3><button onclick="closeModal()" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 font-bold">✕</button></div>
+      <form onsubmit="return submitContact(event)" class="space-y-3">
+        <input id="c_name" required placeholder="الاسم *" class="w-full bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+        <input id="c_company" placeholder="الشركة" class="w-full bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+        <input id="c_email" type="email" placeholder="البريد الإلكتروني" class="w-full bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300" />
+        <select id="c_tag" class="w-full bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-brand-300">
+          <option value="محتمل">محتمل</option><option value="عميل">عميل</option><option value="متابعة">متابعة</option>
+        </select>
+        <div class="flex gap-2 pt-1">
+          <button type="button" onclick="closeModal()" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl">إلغاء</button>
+          <button class="flex-1 bg-brand-600 text-white font-bold py-3 rounded-xl">حفظ</button>
+        </div>
+      </form>
     </div>
-  </header>
-
-  <main class="max-w-3xl mx-auto px-4 pb-28 pt-5">
-
-    <!-- ===== Dashboard ===== -->
-    <section id="dashboard" class="view active">
-      <h1 class="text-xl font-extrabold mb-1">لوحة التحكم</h1>
-      <p class="text-slate-500 text-sm mb-4">مرحباً عبدالله 👋 إليك ملخّص أدائك اليوم</p>
-      <div id="kpis" class="grid grid-cols-2 gap-3 mb-5"></div>
-
-      <div class="bg-white rounded-2xl shadow-sm p-4 mb-5">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-bold">الإيرادات (آخر ٧ أشهر)</h3>
-          <span class="text-emerald-600 text-sm font-bold">▲ ٪١٨</span>
-        </div>
-        <div id="chart" class="flex items-end justify-between gap-2 h-36"></div>
-      </div>
-
-      <div class="grid sm:grid-cols-2 gap-4">
-        <div class="bg-white rounded-2xl shadow-sm p-4">
-          <h3 class="font-bold mb-3">أحدث الأنشطة</h3>
-          <div id="activities" class="space-y-3"></div>
-        </div>
-        <div class="bg-white rounded-2xl shadow-sm p-4">
-          <h3 class="font-bold mb-3">صفقات قاربت الإغلاق</h3>
-          <div id="closing" class="space-y-3"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Contacts ===== -->
-    <section id="contacts" class="view">
-      <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-extrabold">جهات الاتصال</h1>
-        <button onclick="toast('➕ إضافة جهة اتصال (تجريبي)')" class="bg-brand-600 text-white text-sm font-bold px-3 py-2 rounded-xl hover:bg-brand-700">+ جديد</button>
-      </div>
-      <input id="search" oninput="renderContacts()" placeholder="🔍 ابحث بالاسم أو الشركة…" class="w-full bg-white rounded-xl px-4 py-3 mb-4 text-sm shadow-sm outline-none focus:ring-2 ring-brand-300" />
-      <div id="contactList" class="space-y-3"></div>
-    </section>
-
-    <!-- ===== Pipeline ===== -->
-    <section id="pipeline" class="view">
-      <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-extrabold">خط الصفقات</h1>
-        <span class="text-sm text-slate-500">إجمالي: <b id="pipeTotal" class="text-brand-700"></b></span>
-      </div>
-      <div id="board" class="flex gap-3 overflow-x-auto no-scrollbar pb-2"></div>
-    </section>
-
-    <!-- ===== Leads ===== -->
-    <section id="leads" class="view">
-      <h1 class="text-xl font-extrabold mb-1">العملاء المحتملون</h1>
-      <p class="text-slate-500 text-sm mb-4">مرتّبون حسب تقييم الذكاء الاصطناعي ✨</p>
-      <div id="leadList" class="space-y-3"></div>
-    </section>
-
-    <!-- ===== Account ===== -->
-    <section id="account" class="view">
-      <h1 class="text-xl font-extrabold mb-4">حسابي</h1>
-      <div class="bg-white rounded-2xl shadow-sm p-5 mb-4 flex items-center gap-4">
-        <div class="w-16 h-16 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-2xl font-extrabold">عـ</div>
-        <div>
-          <div class="font-bold text-lg">عبدالله</div>
-          <div class="text-slate-500 text-sm">شركة التقنيات الرائدة</div>
-          <span class="inline-block mt-1 text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">باقة التجربة</span>
-        </div>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm divide-y">
-        <div class="p-4 flex items-center justify-between"><span>🏢 إدارة المستأجر (Tenant)</span><span class="text-slate-400">›</span></div>
-        <div class="p-4 flex items-center justify-between"><span>👥 المستخدمون والصلاحيات</span><span class="text-slate-400">›</span></div>
-        <div class="p-4 flex items-center justify-between"><span>🔌 التكاملات</span><span class="text-slate-400">›</span></div>
-        <div class="p-4 flex items-center justify-between"><span>🌐 اللغة: العربية</span><span class="text-slate-400">›</span></div>
-      </div>
-      <button onclick="toast('🚀 الترقية إلى الباقة الاحترافية (تجريبي)')" class="w-full mt-4 bg-gradient-to-l from-brand-700 to-brand-500 text-white font-bold py-3 rounded-2xl shadow-lg">⭐ ترقية إلى الباقة الاحترافية</button>
-      <p class="text-center text-xs text-slate-400 mt-4">Nexus CRM — نسخة عرض تجريبية (بيانات وهمية)</p>
-    </section>
-  </main>
-
-  <!-- ===== AI Assistant FAB ===== -->
-  <button onclick="toast('✨ مساعد Nexus الذكي: كيف أساعدك؟ (تجريبي)')" class="fixed bottom-24 left-4 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-fuchsia-500 to-brand-600 text-white text-2xl shadow-xl flex items-center justify-center active:scale-95">✨</button>
-
-  <!-- ===== Bottom Nav ===== -->
-  <nav class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 shadow-2xl">
-    <div class="max-w-3xl mx-auto grid grid-cols-5 px-2 py-2">
-      <button data-target="dashboard" class="navbtn active flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1">
-        <span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">📊</span>لوحة التحكم</button>
-      <button data-target="contacts" class="navbtn flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1">
-        <span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">👥</span>جهات الاتصال</button>
-      <button data-target="pipeline" class="navbtn flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1">
-        <span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">💼</span>الصفقات</button>
-      <button data-target="leads" class="navbtn flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1">
-        <span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">🎯</span>المحتملون</button>
-      <button data-target="account" class="navbtn flex flex-col items-center gap-1 text-[11px] text-slate-500 font-medium py-1">
-        <span class="navicon w-10 h-7 rounded-lg flex items-center justify-center text-lg transition-all">⚙️</span>حسابي</button>
-    </div>
-  </nav>
+  </div>
 
   <script>
-    // ===== Mock Data =====
+    // ===== Storage helpers =====
+    const LS = {
+      get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+      set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} },
+      del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+    };
+    const $ = s => document.querySelector(s);
+
+    // ===== Seed data =====
     const kpis = [
       { label:'إجمالي العملاء', value:'١٬٢٤٨', sub:'▲ ٪١٢ هذا الشهر', color:'text-emerald-600', icon:'👥', bg:'bg-blue-50' },
       { label:'الصفقات النشطة', value:'٣٧', sub:'٩ قاربت الإغلاق', color:'text-slate-500', icon:'💼', bg:'bg-violet-50' },
@@ -171,27 +227,22 @@
       { i:'✅', t:'إغلاق صفقة <b>$١٢٬٠٠٠</b> مع <b>مجموعة نون</b>', time:'قبل ٣ س' },
       { i:'✨', t:'الذكاء الاصطناعي صنّف عميلاً جديداً بدرجة <b>٩٢</b>', time:'اليوم' },
     ];
-    const closing = [
-      { c:'شركة الأفق', v:'$٢٤٬٠٠٠', p:85 },
-      { c:'مجموعة نون', v:'$١٨٬٥٠٠', p:70 },
-      { c:'تِك سوليوشنز', v:'$٩٬٢٠٠', p:60 },
+    const closing = [ {c:'شركة الأفق',v:'$٢٤٬٠٠٠',p:85},{c:'مجموعة نون',v:'$١٨٬٥٠٠',p:70},{c:'تِك سوليوشنز',v:'$٩٬٢٠٠',p:60} ];
+    const defaultContacts = [
+      { n:'أحمد الراشد', co:'التقنيات الرائدة', e:'ahmed@lead-tech.sa', tag:'عميل' },
+      { n:'سارة المنصوري', co:'شركة الأفق', e:'sara@ofuq.com', tag:'محتمل' },
+      { n:'خالد العتيبي', co:'مجموعة نون', e:'khalid@noon.co', tag:'عميل' },
+      { n:'نورة القحطاني', co:'تِك سوليوشنز', e:'noura@tech.io', tag:'محتمل' },
+      { n:'فهد الدوسري', co:'بيانات بلس', e:'fahad@data.sa', tag:'متابعة' },
+      { n:'ليان السبيعي', co:'سحابة الخليج', e:'layan@cloud.gulf', tag:'عميل' },
     ];
-    const contacts = [
-      { n:'أحمد الراشد', co:'التقنيات الرائدة', e:'ahmed@lead-tech.sa', tag:'عميل', c:'bg-emerald-100 text-emerald-700' },
-      { n:'سارة المنصوري', co:'شركة الأفق', e:'sara@ofuq.com', tag:'محتمل', c:'bg-amber-100 text-amber-700' },
-      { n:'خالد العتيبي', co:'مجموعة نون', e:'khalid@noon.co', tag:'عميل', c:'bg-emerald-100 text-emerald-700' },
-      { n:'نورة القحطاني', co:'تِك سوليوشنز', e:'noura@tech.io', tag:'محتمل', c:'bg-amber-100 text-amber-700' },
-      { n:'فهد الدوسري', co:'بيانات بلس', e:'fahad@data.sa', tag:'متابعة', c:'bg-blue-100 text-blue-700' },
-      { n:'ليان السبيعي', co:'سحابة الخليج', e:'layan@cloud.gulf', tag:'عميل', c:'bg-emerald-100 text-emerald-700' },
-      { n:'عمر الشمري', co:'متجر الإلكترونيات', e:'omar@estore.sa', tag:'محتمل', c:'bg-amber-100 text-amber-700' },
-      { n:'ريم الحربي', co:'وكالة إبداع', e:'reem@ibdaa.co', tag:'متابعة', c:'bg-blue-100 text-blue-700' },
-    ];
+    const tagColors = { 'عميل':'bg-emerald-100 text-emerald-700', 'محتمل':'bg-amber-100 text-amber-700', 'متابعة':'bg-blue-100 text-blue-700' };
     const stages = [
-      { name:'عميل محتمل', color:'bg-slate-400', deals:[ {t:'متجر الإلكترونيات', v:'$٤٬٢٠٠', o:'عمر'}, {t:'وكالة إبداع', v:'$٦٬٨٠٠', o:'ريم'} ] },
-      { name:'تواصل أولي', color:'bg-blue-400', deals:[ {t:'بيانات بلس', v:'$٩٬٢٠٠', o:'فهد'} ] },
-      { name:'عرض سعر', color:'bg-violet-400', deals:[ {t:'شركة الأفق', v:'$٢٤٬٠٠٠', o:'سارة'}, {t:'تِك سوليوشنز', v:'$٩٬٢٠٠', o:'نورة'} ] },
-      { name:'تفاوض', color:'bg-amber-400', deals:[ {t:'مجموعة نون', v:'$١٨٬٥٠٠', o:'خالد'} ] },
-      { name:'تم الربح ✓', color:'bg-emerald-500', deals:[ {t:'سحابة الخليج', v:'$٣٢٬٠٠٠', o:'ليان'} ] },
+      { name:'عميل محتمل', color:'bg-slate-400', deals:[ {t:'متجر الإلكترونيات',v:'$٤٬٢٠٠',o:'عمر'},{t:'وكالة إبداع',v:'$٦٬٨٠٠',o:'ريم'} ] },
+      { name:'تواصل أولي', color:'bg-blue-400', deals:[ {t:'بيانات بلس',v:'$٩٬٢٠٠',o:'فهد'} ] },
+      { name:'عرض سعر', color:'bg-violet-400', deals:[ {t:'شركة الأفق',v:'$٢٤٬٠٠٠',o:'سارة'},{t:'تِك سوليوشنز',v:'$٩٬٢٠٠',o:'نورة'} ] },
+      { name:'تفاوض', color:'bg-amber-400', deals:[ {t:'مجموعة نون',v:'$١٨٬٥٠٠',o:'خالد'} ] },
+      { name:'تم الربح ✓', color:'bg-emerald-500', deals:[ {t:'سحابة الخليج',v:'$٣٢٬٠٠٠',o:'ليان'} ] },
     ];
     const leads = [
       { n:'متجر الإلكترونيات', s:'إعلان Google', score:92, st:'ساخن', c:'bg-rose-100 text-rose-700' },
@@ -200,101 +251,122 @@
       { n:'مؤسسة الريادة', s:'إحالة', score:41, st:'بارد', c:'bg-sky-100 text-sky-700' },
     ];
 
-    // ===== Renderers =====
-    const $ = s => document.querySelector(s);
-    function initials(n){ return n.trim().split(' ').slice(0,1).join('').slice(0,2) || n.slice(0,2); }
-    const colorFor = ['bg-brand-100 text-brand-700','bg-emerald-100 text-emerald-700','bg-amber-100 text-amber-700','bg-rose-100 text-rose-700','bg-sky-100 text-sky-700','bg-violet-100 text-violet-700'];
+    let contacts = LS.get('nexus_contacts', null) || defaultContacts.slice();
+    let session = LS.get('nexus_session', null);
 
-    function renderKpis(){
-      $('#kpis').innerHTML = kpis.map(k=>`
-        <div class="bg-white rounded-2xl shadow-sm p-4">
-          <div class="w-9 h-9 ${k.bg} rounded-lg flex items-center justify-center text-lg mb-2">${k.icon}</div>
-          <div class="text-2xl font-extrabold leading-none">${k.value}</div>
-          <div class="text-[12px] text-slate-500 mt-1">${k.label}</div>
-          <div class="text-[11px] font-bold mt-1 ${k.color}">${k.sub}</div>
-        </div>`).join('');
+    // ===== Helpers =====
+    function initials(n){ n=(n||'').trim(); return n? n.slice(0,2) : 'N'; }
+    const avatarColors = ['bg-brand-100 text-brand-700','bg-emerald-100 text-emerald-700','bg-amber-100 text-amber-700','bg-rose-100 text-rose-700','bg-sky-100 text-sky-700','bg-violet-100 text-violet-700'];
+
+    // ===== Auth =====
+    function setAuthMode(m){
+      const su=$('#signupForm'), li=$('#loginForm'), ts=$('#tabSignup'), tl=$('#tabLogin');
+      const on='bg-white shadow text-brand-700', off='text-slate-500';
+      if(m==='signup'){ su.classList.remove('hidden-imp'); li.classList.add('hidden-imp'); ts.className='py-2 rounded-lg '+on; tl.className='py-2 rounded-lg '+off; }
+      else { li.classList.remove('hidden-imp'); su.classList.add('hidden-imp'); tl.className='py-2 rounded-lg '+on; ts.className='py-2 rounded-lg '+off; }
     }
-    function renderChart(){
-      const max = Math.max(...chart);
-      $('#chart').innerHTML = chart.map((v,i)=>`
-        <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-          <div class="w-full rounded-t-lg bg-gradient-to-t from-brand-500 to-brand-300" style="height:${(v/max)*100}%"></div>
-          <span class="text-[10px] text-slate-400">${months[i]}</span>
-        </div>`).join('');
+    function doSignup(e){ e.preventDefault();
+      session = { name:$('#su_name').value.trim()||'مستخدم', company:$('#su_company').value.trim()||'شركتي', email:$('#su_email').value.trim(), trialStart:Date.now() };
+      LS.set('nexus_session', session); enterApp(); return false;
     }
-    function renderActivities(){
-      $('#activities').innerHTML = activities.map(a=>`
-        <div class="flex items-start gap-3">
-          <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">${a.i}</div>
-          <div class="min-w-0"><div class="text-sm leading-snug">${a.t}</div><div class="text-[11px] text-slate-400">${a.time}</div></div>
-        </div>`).join('');
+    function doLogin(e){ e.preventDefault();
+      const email=$('#li_email').value.trim();
+      if(!session){ session={ name: email? email.split('@')[0] : 'مستخدم', company:'شركتي', email, trialStart:Date.now() }; }
+      session.email = email || session.email; LS.set('nexus_session', session); enterApp(); return false;
     }
-    function renderClosing(){
-      $('#closing').innerHTML = closing.map(c=>`
-        <div>
-          <div class="flex items-center justify-between text-sm"><span class="font-medium">${c.c}</span><span class="font-bold text-brand-700">${c.v}</span></div>
-          <div class="h-2 bg-slate-100 rounded-full mt-1 overflow-hidden"><div class="h-full bg-gradient-to-l from-brand-600 to-brand-400" style="width:${c.p}%"></div></div>
-          <div class="text-[11px] text-slate-400 mt-0.5">احتمالية الإغلاق ٪${c.p}</div>
-        </div>`).join('');
+    function logout(){ LS.del('nexus_session'); session=null; $('#app').classList.add('hidden-imp'); $('#auth').classList.remove('hidden-imp'); window.scrollTo({top:0}); }
+
+    function trialText(){
+      const start = session && session.trialStart ? session.trialStart : Date.now();
+      let left = 14 - Math.floor((Date.now()-start)/86400000); if(left<0) left=0; if(left>14) left=14;
+      return left>0 ? ('باقٍ '+left+' يوماً') : 'انتهت — يلزم الاشتراك';
     }
+    function enterApp(){
+      $('#auth').classList.add('hidden-imp');
+      $('#app').classList.remove('hidden-imp');
+      const nm = session?session.name:'بك', co = session?session.company:'—';
+      $('#greetName').textContent = nm;
+      $('#hdrCompany').textContent = co;
+      $('#hdrAvatar').textContent = initials(nm);
+      $('#accName').textContent = nm;
+      $('#accCompany').textContent = co;
+      $('#accAvatar').textContent = initials(nm);
+      $('#trialDays').textContent = trialText();
+      renderAll();
+      window.scrollTo({top:0});
+    }
+
+    // ===== Renderers =====
+    function renderKpis(){ $('#kpis').innerHTML = kpis.map(k=>`
+      <div class="bg-white rounded-2xl shadow-sm p-4">
+        <div class="w-9 h-9 ${k.bg} rounded-lg flex items-center justify-center text-lg mb-2">${k.icon}</div>
+        <div class="text-2xl font-extrabold leading-none">${k.value}</div>
+        <div class="text-[12px] text-slate-500 mt-1">${k.label}</div>
+        <div class="text-[11px] font-bold mt-1 ${k.color}">${k.sub}</div>
+      </div>`).join(''); }
+    function renderChart(){ const max=Math.max(...chart); $('#chart').innerHTML = chart.map((v,i)=>`
+      <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+        <div class="w-full rounded-t-lg bg-gradient-to-t from-brand-500 to-brand-300" style="height:${(v/max)*100}%"></div>
+        <span class="text-[10px] text-slate-400">${months[i]}</span>
+      </div>`).join(''); }
+    function renderActivities(){ $('#activities').innerHTML = activities.map(a=>`
+      <div class="flex items-start gap-3"><div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">${a.i}</div>
+      <div class="min-w-0"><div class="text-sm leading-snug">${a.t}</div><div class="text-[11px] text-slate-400">${a.time}</div></div></div>`).join(''); }
+    function renderClosing(){ $('#closing').innerHTML = closing.map(c=>`
+      <div><div class="flex items-center justify-between text-sm"><span class="font-medium">${c.c}</span><span class="font-bold text-brand-700">${c.v}</span></div>
+      <div class="h-2 bg-slate-100 rounded-full mt-1 overflow-hidden"><div class="h-full bg-gradient-to-l from-brand-600 to-brand-400" style="width:${c.p}%"></div></div>
+      <div class="text-[11px] text-slate-400 mt-0.5">احتمالية الإغلاق ٪${c.p}</div></div>`).join(''); }
     function renderContacts(){
-      const q = ($('#search').value||'').trim();
-      const list = contacts.filter(c=> !q || c.n.includes(q) || c.co.includes(q));
+      const q=(($('#search')&&$('#search').value)||'').trim();
+      const list=contacts.filter(c=> !q || (c.n&&c.n.includes(q)) || (c.co&&c.co.includes(q)));
       $('#contactList').innerHTML = list.length ? list.map((c,i)=>`
-        <div onclick="toast('👤 ملف: ${c.n}')" class="bg-white rounded-2xl shadow-sm p-3 flex items-center gap-3 active:bg-slate-50">
-          <div class="w-11 h-11 rounded-xl ${colorFor[i%colorFor.length]} flex items-center justify-center font-bold shrink-0">${initials(c.n)}</div>
-          <div class="min-w-0 flex-1"><div class="font-bold truncate">${c.n}</div><div class="text-[12px] text-slate-500 truncate">${c.co} · ${c.e}</div></div>
-          <span class="text-[11px] ${c.c} px-2 py-1 rounded-full font-bold shrink-0">${c.tag}</span>
-        </div>`).join('') : `<div class="text-center text-slate-400 py-10">لا نتائج لـ "${q}"</div>`;
+        <div onclick="toast('👤 ملف: ${(c.n||'').replace(/'/g,'')}')" class="bg-white rounded-2xl shadow-sm p-3 flex items-center gap-3 active:bg-slate-50">
+          <div class="w-11 h-11 rounded-xl ${avatarColors[i%avatarColors.length]} flex items-center justify-center font-bold shrink-0">${initials(c.n)}</div>
+          <div class="min-w-0 flex-1"><div class="font-bold truncate">${c.n||''}</div><div class="text-[12px] text-slate-500 truncate">${c.co||''}${c.e?(' · '+c.e):''}</div></div>
+          <span class="text-[11px] ${tagColors[c.tag]||'bg-slate-100 text-slate-600'} px-2 py-1 rounded-full font-bold shrink-0">${c.tag||''}</span>
+        </div>`).join('') : `<div class="text-center text-slate-400 py-10">لا نتائج</div>`;
     }
-    function renderBoard(){
-      let total=0; stages.forEach(s=>s.deals.forEach(()=>{}));
-      $('#board').innerHTML = stages.map(s=>`
-        <div class="w-56 shrink-0">
-          <div class="flex items-center gap-2 mb-2 px-1"><span class="w-2.5 h-2.5 rounded-full ${s.color}"></span><span class="font-bold text-sm">${s.name}</span><span class="text-[11px] text-slate-400">(${s.deals.length})</span></div>
-          <div class="space-y-2">
-            ${s.deals.map(d=>`<div onclick="toast('💼 صفقة: ${d.t}')" class="bg-white rounded-xl shadow-sm p-3 active:bg-slate-50">
-              <div class="font-bold text-sm mb-1">${d.t}</div>
-              <div class="flex items-center justify-between"><span class="text-brand-700 font-extrabold text-sm">${d.v}</span><span class="text-[11px] text-slate-400">👤 ${d.o}</span></div>
-            </div>`).join('')}
-          </div>
-        </div>`).join('');
-      $('#pipeTotal').textContent = '$١٢٣٬٧٠٠';
-    }
-    function renderLeads(){
-      $('#leadList').innerHTML = leads.map(l=>`
-        <div class="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3">
-          <div class="relative w-12 h-12 shrink-0">
-            <svg viewBox="0 0 36 36" class="w-12 h-12"><path d="M18 2a16 16 0 1 1 0 32 16 16 0 0 1 0-32" fill="none" stroke="#eef2ff" stroke-width="4"/><path d="M18 2a16 16 0 0 1 0 32" fill="none" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" stroke-dasharray="${l.score} 100" transform="rotate(-90 18 18)"/></svg>
-            <span class="absolute inset-0 flex items-center justify-center text-[12px] font-extrabold text-brand-700">${l.score}</span>
-          </div>
-          <div class="flex-1 min-w-0"><div class="font-bold truncate">${l.n}</div><div class="text-[12px] text-slate-500">✨ المصدر: ${l.s}</div></div>
-          <span class="text-[11px] ${l.c} px-2 py-1 rounded-full font-bold shrink-0">${l.st}</span>
-        </div>`).join('');
+    function renderBoard(){ $('#board').innerHTML = stages.map(s=>`
+      <div class="w-56 shrink-0">
+        <div class="flex items-center gap-2 mb-2 px-1"><span class="w-2.5 h-2.5 rounded-full ${s.color}"></span><span class="font-bold text-sm">${s.name}</span><span class="text-[11px] text-slate-400">(${s.deals.length})</span></div>
+        <div class="space-y-2">${s.deals.map(d=>`<div onclick="toast('💼 صفقة: ${d.t}')" class="bg-white rounded-xl shadow-sm p-3 active:bg-slate-50">
+          <div class="font-bold text-sm mb-1">${d.t}</div>
+          <div class="flex items-center justify-between"><span class="text-brand-700 font-extrabold text-sm">${d.v}</span><span class="text-[11px] text-slate-400">👤 ${d.o}</span></div></div>`).join('')}</div>
+      </div>`).join(''); $('#pipeTotal').textContent='$١٢٣٬٧٠٠'; }
+    function renderLeads(){ $('#leadList').innerHTML = leads.map(l=>`
+      <div class="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3">
+        <div class="relative w-12 h-12 shrink-0"><svg viewBox="0 0 36 36" class="w-12 h-12"><path d="M18 2a16 16 0 1 1 0 32 16 16 0 0 1 0-32" fill="none" stroke="#eef2ff" stroke-width="4"/><path d="M18 2a16 16 0 0 1 0 32" fill="none" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" stroke-dasharray="${l.score} 100" transform="rotate(-90 18 18)"/></svg><span class="absolute inset-0 flex items-center justify-center text-[12px] font-extrabold text-brand-700">${l.score}</span></div>
+        <div class="flex-1 min-w-0"><div class="font-bold truncate">${l.n}</div><div class="text-[12px] text-slate-500">✨ المصدر: ${l.s}</div></div>
+        <span class="text-[11px] ${l.c} px-2 py-1 rounded-full font-bold shrink-0">${l.st}</span></div>`).join(''); }
+    function renderAll(){ renderKpis(); renderChart(); renderActivities(); renderClosing(); renderContacts(); renderBoard(); renderLeads(); }
+
+    // ===== Modal (add contact) =====
+    function openModal(){ $('#modal').classList.remove('hidden-imp'); }
+    function closeModal(){ $('#modal').classList.add('hidden-imp'); $('#c_name').value=''; $('#c_company').value=''; $('#c_email').value=''; }
+    function submitContact(e){ e.preventDefault();
+      const n=$('#c_name').value.trim(); if(!n) return false;
+      contacts.unshift({ n, co:$('#c_company').value.trim(), e:$('#c_email').value.trim(), tag:$('#c_tag').value });
+      LS.set('nexus_contacts', contacts); closeModal(); renderContacts(); go('contacts'); toast('✅ تمت إضافة '+n); return false;
     }
 
     // ===== Navigation =====
-    document.querySelectorAll('.navbtn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-        document.getElementById(btn.dataset.target).classList.add('active');
-        window.scrollTo({top:0, behavior:'smooth'});
-      });
-    });
+    function go(target){
+      document.querySelectorAll('.navbtn').forEach(b=> b.classList.toggle('active', b.dataset.target===target));
+      document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id===target));
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+    document.querySelectorAll('.navbtn').forEach(btn=> btn.addEventListener('click', ()=> go(btn.dataset.target)));
 
     // ===== Toast =====
     let toastT;
     function toast(msg){
-      let el = document.getElementById('toast');
-      if(!el){ el=document.createElement('div'); el.id='toast'; el.className='toast fixed bottom-28 right-1/2 translate-x-1/2 z-50 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-2xl max-w-[90%] text-center'; document.body.appendChild(el); }
-      el.innerHTML = msg; el.style.display='block';
-      clearTimeout(toastT); toastT = setTimeout(()=> el.style.display='none', 2200);
+      let el=document.getElementById('toast');
+      if(!el){ el=document.createElement('div'); el.id='toast'; el.className='toast fixed bottom-28 right-1/2 translate-x-1/2 z-[60] bg-slate-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-2xl max-w-[90%] text-center'; document.body.appendChild(el); }
+      el.innerHTML=msg; el.style.display='block'; clearTimeout(toastT); toastT=setTimeout(()=> el.style.display='none', 2200);
     }
 
-    // ===== Init =====
-    renderKpis(); renderChart(); renderActivities(); renderClosing(); renderContacts(); renderBoard(); renderLeads();
+    // ===== Boot =====
+    if(session){ enterApp(); } else { setAuthMode('signup'); }
   </script>
 </body>
 </html>
