@@ -34,5 +34,8 @@ app.get("*", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`CopyTrade Pro server running on http://localhost:${PORT}`);
+  console.log(`CopyTrade Pro server running on port ${PORT}`);
+  console.log(`Static files path: ${clientDist}`);
+  const fs = require("fs");
+  console.log(`Client dist exists: ${fs.existsSync(clientDist)}`);
 });
