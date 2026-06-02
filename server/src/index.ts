@@ -25,7 +25,12 @@ app.get("/api/health", (_req, res) => {
 const clientDist = path.join(__dirname, "../../client/dist");
 app.use(express.static(clientDist));
 app.get("*", (_req, res) => {
-  res.sendFile(path.join(clientDist, "index.html"));
+  const indexPath = path.join(clientDist, "index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(200).send(`<!DOCTYPE html><html><head><title>CopyTrade Pro</title></head><body style="background:#080c14;color:#94a3b8;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:12px"><div style="font-size:32px;font-weight:900;color:#fff">CopyTrade Pro</div><div>Server is running. Static files not found at: ${indexPath}</div></body></html>`);
+    }
+  });
 });
 
 app.listen(PORT, () => {

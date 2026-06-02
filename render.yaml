@@ -2,8 +2,9 @@ services:
   - type: web
     name: copytrade-pro
     runtime: node
-    buildCommand: npm run build
-    startCommand: npm start
+    branch: claude/trade-copying-platform-beXwU
+    buildCommand: npm install && cd client && npm install && npm run build && cd ../server && npm install && npm run build
+    startCommand: cd server && node dist/index.js
     envVars:
       - key: JWT_SECRET
         generateValue: true
