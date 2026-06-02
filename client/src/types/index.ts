@@ -65,6 +65,19 @@ export interface CopySubscription {
   started_at: string;
 }
 
+export interface MTConnection {
+  id: string;
+  user_id: string;
+  ea_token: string;
+  mode: "provider" | "copier";
+  account_number: string | null;
+  broker: string | null;
+  mt_version: "MT4" | "MT5";
+  status: "pending" | "connected" | "disconnected";
+  last_ping: string | null;
+  created_at: string;
+}
+
 export interface Portfolio {
   balance: number;
   equity: number;

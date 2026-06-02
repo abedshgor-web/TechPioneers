@@ -5,6 +5,7 @@ import path from "path";
 import authRouter from "./routes/auth";
 import tradersRouter from "./routes/traders";
 import copyRouter from "./routes/copy";
+import mtRouter from "./routes/mt";
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/traders", tradersRouter);
 app.use("/api/copy", copyRouter);
+app.use("/api/mt", mtRouter);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", message: "CopyTrade Pro server is running" });

@@ -6,11 +6,12 @@ import TradersPage from "./pages/TradersPage";
 import TraderProfilePage from "./pages/TraderProfilePage";
 import MyCopiesPage from "./pages/MyCopiesPage";
 import SettingsPage from "./pages/SettingsPage";
+import MTConnectPage from "./pages/MTConnectPage";
 import AuthPage from "./pages/AuthPage";
 import { useAuth } from "./contexts/AuthContext";
 import { useLang } from "./LanguageContext";
 
-type Page = "dashboard" | "traders" | "my-copies" | "settings";
+type Page = "dashboard" | "traders" | "my-copies" | "settings" | "mt-connect";
 
 function AppInner() {
   const { isRTL } = useLang();
@@ -55,6 +56,8 @@ function AppInner() {
             <TradersPage onViewProfile={handleViewProfile} />
           ) : page === "my-copies" ? (
             <MyCopiesPage onNavigateToTraders={() => setPage("traders")} />
+          ) : page === "mt-connect" ? (
+            <MTConnectPage />
           ) : (
             <SettingsPage />
           )}

@@ -91,6 +91,56 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS mt_connections (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL UNIQUE,
+    ea_token TEXT NOT NULL UNIQUE,
+    mode TEXT NOT NULL DEFAULT 'copier',
+    account_number TEXT,
+    broker TEXT,
+    mt_version TEXT NOT NULL DEFAULT 'MT4',
+    status TEXT NOT NULL DEFAULT 'pending',
+    last_ping TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS mt_signals (
+    id TEXT PRIMARY KEY,
+    provider_user_id TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    direction TEXT NOT NULL,
+    open_price REAL NOT NULL,
+    lot_size REAL NOT NULL,
+    sl REAL,
+    tp REAL,
+    ticket INTEGER,
+    status TEXT NOT NULL DEFAULT 'open',
+    closed_price REAL,
+    profit REAL,
+    opened_at TEXT NOT NULL,
+    closed_at TEXT,
+    FOREIGN KEY (provider_user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS mt_copy_executions (
+    id TEXT PRIMARY KEY,
+    signal_id TEXT NOT NULL,
+    copier_user_id TEXT NOT NULL,
+    ticket INTEGER,
+    lot_size REAL NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    executed_at TEXT,
+    FOREIGN KEY (signal_id) REFERENCES mt_signals(id) ON DELETE CASCADE,
+    FOREIGN KEY (copier_user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
 function rng(seed: number): () => number {
   let s = seed;
   return () => {
