@@ -7,6 +7,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { LoggerModule } from 'nestjs-pino';
 
 import { DatabaseModule } from './common/database/database.module.js';
+import { RedisModule } from './common/redis/redis.module.js';
+import { EmailModule } from './common/email/email.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { TenantsModule } from './modules/tenants/tenants.module.js';
 import { ContactsModule } from './modules/contacts/contacts.module.js';
@@ -58,6 +60,8 @@ import { HealthModule } from './modules/health/health.module.js';
     ScheduleModule.forRoot(),
 
     DatabaseModule,
+    RedisModule,
+    EmailModule,
     HealthModule,
     AuthModule,
     TenantsModule,
