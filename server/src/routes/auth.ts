@@ -15,12 +15,24 @@ interface UserRow {
   name: string;
   stripe_customer_id: string | null;
   plan: string;
+  role: string;
   created_at: string;
 }
 
-function generateToken(user: { id: string; email: string; plan: string }): string {
+// Emails granted admin access to the ads moderation console (comma-separated).
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+function resolveRole(email: string, storedRole: string | undefined): string {
+  if (ADMIN_EMAILS.includes(email.toLowerCase())) return "admin";
+  return storedRole || "user";
+}
+
+function generateToken(user: { id: string; email: string; plan: string; role: string }): string {
   return jwt.sign(
-    { id: user.id, email: user.email, plan: user.plan },
+    { id: user.id, email: user.email, plan: user.plan, role: user.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -58,7 +70,8 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
       "INSERT INTO users (id, email, password_hash, name, plan, created_at) VALUES (?, ?, ?, ?, 'free', ?)"
     ).run(id, email.toLowerCase().trim(), passwordHash, name.trim(), createdAt);
 
-    const user = { id, email: email.toLowerCase().trim(), name: name.trim(), plan: "free" as const };
+    const role = resolveRole(email.toLowerCase().trim(), "user");
+    const user = { id, email: email.toLowerCase().trim(), name: name.trim(), plan: "free" as const, role };
     const token = generateToken(user);
 
     res.status(201).json({ token, user });
@@ -100,6 +113,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
       email: userRow.email,
       name: userRow.name,
       plan: userRow.plan as "free" | "pro",
+      role: resolveRole(userRow.email, userRow.role),
     };
     const token = generateToken(user);
 
@@ -117,7 +131,7 @@ router.get("/me", requireAuth, (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  const userRow = db.prepare("SELECT id, email, name, plan FROM users WHERE id = ?").get(req.user.id) as Omit<UserRow, "password_hash" | "stripe_customer_id" | "created_at"> | undefined;
+  const userRow = db.prepare("SELECT id, email, name, plan, role FROM users WHERE id = ?").get(req.user.id) as Omit<UserRow, "password_hash" | "stripe_customer_id" | "created_at"> | undefined;
 
   if (!userRow) {
     res.status(404).json({ error: "User not found" });
@@ -129,6 +143,7 @@ router.get("/me", requireAuth, (req: AuthRequest, res: Response): void => {
     email: userRow.email,
     name: userRow.name,
     plan: userRow.plan,
+    role: resolveRole(userRow.email, userRow.role),
   });
 });
 

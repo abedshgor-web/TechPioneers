@@ -38,6 +38,7 @@
 | 03 | [03-technical-architecture.md](./03-technical-architecture.md) | المعمارية، نموذج البيانات، محرّك التوزيع، تصميم الـ API، التكامل مع المنصة |
 | 04 | [04-targeting-billing-and-analytics.md](./04-targeting-billing-and-analytics.md) | الاستهداف، التسعير والمزاد، الدفع والتسوية، التتبّع، التقارير، الذكاء الاصطناعي |
 | 05 | [05-security-compliance-and-roadmap.md](./05-security-compliance-and-roadmap.md) | الأمان، اعتدال المحتوى، الامتثال للإعلانات المالية، خارطة الطريق، المخاطر |
+| 06 | [06-implementation-status.md](./06-implementation-status.md) | حالة التنفيذ الفعلي (MVP عامل)، خريطة الملفات، متغيّرات البيئة، كيفية التشغيل |
 
 ---
 
