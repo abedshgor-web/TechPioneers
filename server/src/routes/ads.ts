@@ -37,6 +37,13 @@ function num(v: unknown, def = 0): number {
   const n = typeof v === "number" ? v : parseFloat(String(v));
   return Number.isFinite(n) ? n : def;
 }
+// Accept an https image URL or a small inline data URL; reject anything else.
+function sanitizeImage(v: unknown): string | null {
+  if (typeof v !== "string" || !v) return null;
+  if (/^https:\/\/\S+$/i.test(v)) return v.slice(0, 1000);
+  if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(v) && v.length < 700000) return v;
+  return null;
+}
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) return null;
   return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2026-05-27.dahlia" });
@@ -210,7 +217,7 @@ router.post("/campaigns", requireAuth, requireRole("advertiser", "admin"), (req:
     String(c.headline).trim().slice(0, 80),
     c.body ? String(c.body).trim().slice(0, 160) : null,
     (c.cta_label || "Learn More").toString().slice(0, 24),
-    c.image_url || null, String(c.landing_url),
+    sanitizeImage(c.image_url), String(c.landing_url),
     c.locale || "en",
     ["blue", "emerald", "violet", "amber"].includes(c.accent) ? c.accent : "blue",
     nowIso()

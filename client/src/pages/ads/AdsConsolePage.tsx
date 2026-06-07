@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, ChangeEvent } from "react";
 import { useLang } from "../../LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { AdCampaign, Advertiser, User } from "../../types";
@@ -252,18 +252,39 @@ function CreateTab({ authH, flash, onCreated, onNeedFunds }: { authH: HeadersIni
     name: "", objective: "traffic", pricing_model: "cpc" as "cpc" | "cpm", bid_amount: 0.5,
     daily_budget: 25, total_budget: 200, placement: "dashboard_top_banner",
     headline: "", body: "", cta_label: "Learn More", landing_url: "https://", accent: "blue",
+    image_url: "", t_plans: [] as string[], t_locales: [] as string[], t_countries: "", t_interests: "",
   });
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: unknown) => setF((s) => ({ ...s, [k]: v }));
+  const togglePlan = (v: string) => setF((s) => ({ ...s, t_plans: s.t_plans.includes(v) ? s.t_plans.filter((x) => x !== v) : [...s.t_plans, v] }));
+  const toggleLocale = (v: string) => setF((s) => ({ ...s, t_locales: s.t_locales.includes(v) ? s.t_locales.filter((x) => x !== v) : [...s.t_locales, v] }));
+
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 400_000) { flash(tr.imageTooLarge); return; }
+    const reader = new FileReader();
+    reader.onload = () => set("image_url", String(reader.result));
+    reader.readAsDataURL(file);
+  };
 
   const submit = async () => {
     setBusy(true);
+    const targeting: Record<string, unknown> = {};
+    if (f.t_plans.length) targeting.plans = f.t_plans;
+    if (f.t_locales.length) targeting.locales = f.t_locales;
+    const countries = f.t_countries.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+    if (countries.length) targeting.countries = countries;
+    const interests = f.t_interests.split(",").map((s) => s.trim()).filter(Boolean);
+    if (interests.length) targeting.interests = interests;
+
     const res = await fetch("/api/ads/campaigns", {
       method: "POST", headers: authH,
       body: JSON.stringify({
         name: f.name, objective: f.objective, pricing_model: f.pricing_model, bid_amount: Number(f.bid_amount),
         daily_budget: Number(f.daily_budget), total_budget: Number(f.total_budget), placement: f.placement,
-        creative: { headline: f.headline, body: f.body, cta_label: f.cta_label, landing_url: f.landing_url, accent: f.accent, locale: "en" },
+        targeting: Object.keys(targeting).length ? targeting : undefined,
+        creative: { headline: f.headline, body: f.body, cta_label: f.cta_label, landing_url: f.landing_url, accent: f.accent, locale: "en", image_url: f.image_url || undefined },
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -357,6 +378,61 @@ function CreateTab({ authH, flash, onCreated, onNeedFunds }: { authH: HeadersIni
           </div>
         </div>
 
+        {/* Image */}
+        <div>
+          <label className={labelCls}>{tr.adImage}</label>
+          {f.image_url ? (
+            <div className="flex items-center gap-3">
+              <img src={f.image_url} alt="" className="w-16 h-16 rounded-lg object-cover border border-[#1a2235]" />
+              <button onClick={() => set("image_url", "")} className="text-red-400 hover:text-red-300 text-xs font-bold">{tr.removeImage}</button>
+            </div>
+          ) : (
+            <label className="flex items-center justify-center gap-2 border border-dashed border-[#2a3a55] rounded-lg py-3 text-slate-500 text-xs cursor-pointer hover:border-brand-500 hover:text-slate-300 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              {tr.imageHint}
+              <input type="file" accept="image/*" className="hidden" onChange={onFile} />
+            </label>
+          )}
+        </div>
+
+        <div className="h-px bg-[#1a2235]" />
+
+        {/* Targeting */}
+        <div className="space-y-3">
+          <div>
+            <div className="text-white font-bold text-sm">{tr.targetingTitle}</div>
+            <div className="text-slate-600 text-xs">{tr.targetingHint}</div>
+          </div>
+          <div>
+            <label className={labelCls}>{tr.plansLabel}</label>
+            <div className="flex gap-2">
+              {["free", "pro"].map((p) => (
+                <button key={p} onClick={() => togglePlan(p)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${f.t_plans.includes(p) ? "bg-brand-600 text-white" : "bg-[#0b1119] border border-[#1a2235] text-slate-400 hover:text-white"}`}>{p}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>{tr.languagesLabel}</label>
+            <div className="flex flex-wrap gap-1.5">
+              {["en", "ar", "fr", "es", "tr", "de", "zh", "he"].map((l) => (
+                <button key={l} onClick={() => toggleLocale(l)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase transition-all ${f.t_locales.includes(l) ? "bg-brand-600 text-white" : "bg-[#0b1119] border border-[#1a2235] text-slate-400 hover:text-white"}`}>{l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>{tr.countriesLabel}</label>
+              <input className={inputCls} value={f.t_countries} onChange={(e) => set("t_countries", e.target.value)} placeholder="AE, SA, EG" />
+            </div>
+            <div>
+              <label className={labelCls}>{tr.interestsLabel}</label>
+              <input className={inputCls} value={f.t_interests} onChange={(e) => set("t_interests", e.target.value)} placeholder="Scalping, high" />
+            </div>
+          </div>
+        </div>
+
         <button onClick={submit} disabled={busy}
           className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20">
           {busy ? "…" : tr.submitForReview}
@@ -366,19 +442,20 @@ function CreateTab({ authH, flash, onCreated, onNeedFunds }: { authH: HeadersIni
       {/* Live preview */}
       <div className="space-y-2">
         <div className="text-slate-500 text-xs font-medium">{tr.livePreview}</div>
-        <PreviewCard accent={f.accent} headline={f.headline || tr.adHeadline} body={f.body} cta={f.cta_label} placement={f.placement} />
+        <PreviewCard accent={f.accent} headline={f.headline || tr.adHeadline} body={f.body} cta={f.cta_label} placement={f.placement} image={f.image_url} />
       </div>
     </div>
   );
 }
 
-function PreviewCard({ accent, headline, body, cta, placement }: { accent: string; headline: string; body: string; cta: string; placement: string }) {
+function PreviewCard({ accent, headline, body, cta, placement, image }: { accent: string; headline: string; body: string; cta: string; placement: string; image?: string }) {
   const { tr } = useLang();
   const chip: Record<string, string> = { blue: "text-blue-300 bg-blue-500/10", emerald: "text-emerald-300 bg-emerald-500/10", violet: "text-violet-300 bg-violet-500/10", amber: "text-amber-300 bg-amber-500/10" };
   const btn: Record<string, string> = { blue: "bg-blue-600", emerald: "bg-emerald-600", violet: "bg-violet-600", amber: "bg-amber-600" };
   const isBanner = placement === "dashboard_top_banner";
   return (
     <div className={`card p-4 border ${accent === "blue" ? "border-blue-500/25" : accent === "emerald" ? "border-emerald-500/25" : accent === "violet" ? "border-violet-500/25" : "border-amber-500/25"} ${isBanner ? "" : "max-w-[260px]"}`}>
+      {image && <img src={image} alt="" className="w-full h-24 object-cover rounded-lg mb-3" />}
       <div className="flex items-center justify-between mb-2">
         <div className={`w-9 h-9 rounded-xl ${btn[accent]} flex items-center justify-center text-white font-black text-sm`}>A</div>
         <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${chip[accent]}`}>{tr.sponsored}</span>

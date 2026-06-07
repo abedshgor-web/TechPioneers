@@ -179,6 +179,16 @@ const en = {
   adminRevenueTitle: "Ads revenue",
   walletLowWarning: "Top up your wallet to launch campaigns.",
   required: "required",
+  adImage: "Ad image (optional)",
+  imageHint: "Click to upload — PNG/JPG, under 400 KB",
+  imageTooLarge: "Image must be under 400 KB",
+  removeImage: "Remove",
+  targetingTitle: "Targeting",
+  targetingHint: "Leave empty to reach everyone",
+  plansLabel: "Plans",
+  languagesLabel: "Languages",
+  countriesLabel: "Countries",
+  interestsLabel: "Interests",
 };
 
 const ar: typeof en = {
@@ -347,6 +357,16 @@ const ar: typeof en = {
   adminRevenueTitle: "إيراد الإعلانات",
   walletLowWarning: "اشحن محفظتك لإطلاق الحملات.",
   required: "مطلوب",
+  adImage: "صورة الإعلان (اختياري)",
+  imageHint: "اضغط للرفع — PNG/JPG، أقل من 400 ك.ب",
+  imageTooLarge: "يجب أن تكون الصورة أقل من 400 ك.ب",
+  removeImage: "إزالة",
+  targetingTitle: "الاستهداف",
+  targetingHint: "اتركه فارغاً للوصول إلى الجميع",
+  plansLabel: "الباقات",
+  languagesLabel: "اللغات",
+  countriesLabel: "الدول",
+  interestsLabel: "الاهتمامات",
 };
 
 const fr: typeof en = { ...en,

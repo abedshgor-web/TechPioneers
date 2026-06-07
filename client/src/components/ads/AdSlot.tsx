@@ -81,9 +81,13 @@ export default function AdSlot({ placement, className = "" }: Props) {
       >
         <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a.glow} to-transparent opacity-60`} />
         <div className="relative flex items-center gap-3.5">
-          <div className={`shrink-0 w-10 h-10 rounded-xl ${a.btn} flex items-center justify-center text-white font-black text-base shadow-lg`}>
-            {ad.advertiser.charAt(0).toUpperCase()}
-          </div>
+          {ad.imageUrl ? (
+            <img src={ad.imageUrl} alt="" className="shrink-0 w-10 h-10 rounded-xl object-cover shadow-lg" loading="lazy" />
+          ) : (
+            <div className={`shrink-0 w-10 h-10 rounded-xl ${a.btn} flex items-center justify-center text-white font-black text-base shadow-lg`}>
+              {ad.advertiser.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${a.chip}`}>{tr.sponsored}</span>
@@ -110,6 +114,9 @@ export default function AdSlot({ placement, className = "" }: Props) {
       aria-label={ad.headline}
     >
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${a.glow} to-transparent opacity-50`} />
+      {ad.imageUrl && (
+        <img src={ad.imageUrl} alt="" className="relative w-full h-28 object-cover rounded-lg mb-3" loading="lazy" />
+      )}
       <div className="relative flex items-center justify-between mb-3">
         <div className={`w-9 h-9 rounded-xl ${a.btn} flex items-center justify-center text-white font-black text-sm`}>
           {ad.advertiser.charAt(0).toUpperCase()}
