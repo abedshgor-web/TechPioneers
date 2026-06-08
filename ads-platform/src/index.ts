@@ -9,6 +9,7 @@ import campaignRoutes from './routes/campaigns';
 import adRoutes from './routes/ads';
 import serveRoutes from './routes/serve';
 import reportRoutes from './routes/reports';
+import templateRoutes from './routes/templates';
 
 initSchema();
 
@@ -24,6 +25,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/campaigns', adRoutes);   // /api/campaigns/:id/ads
 app.use('/api/serve', serveRoutes);    // /api/serve + /api/serve/click/:adId
 app.use('/api/reports', reportRoutes);
+app.use('/api/templates', templateRoutes);
 
 // تقديم الواجهة الثابتة (صفحة الهبوط + لوحة المعلن)
 app.use(express.static(path.join(__dirname, '..', 'public')));

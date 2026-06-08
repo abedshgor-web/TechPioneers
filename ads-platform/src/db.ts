@@ -75,5 +75,12 @@ export function initSchema(): void {
     );
     CREATE INDEX IF NOT EXISTS idx_events_campaign ON ad_events(campaign_id, type);
     CREATE INDEX IF NOT EXISTS idx_events_ad ON ad_events(ad_id, type);
+
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id       TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      auto_recharge INTEGER NOT NULL DEFAULT 0,   -- 0 | 1
+      ar_threshold  INTEGER NOT NULL DEFAULT 500,  -- يحفّز الشحن عند النزول دونه (سنت)
+      ar_amount     INTEGER NOT NULL DEFAULT 2000  -- مبلغ الشحن التلقائي (سنت)
+    );
   `);
 }

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { db } from '../db';
 import { signClick, verifyClick, hashUser } from '../sign';
+import { balanceOf, addEntry, maybeAutoRecharge } from '../ledger';
 
 const router = Router();
 
@@ -16,13 +17,6 @@ interface ServableAd {
   bid_amount: number;
   budget_total: number;
   targeting: string;
-}
-
-function balanceOf(userId: string): number {
-  const r = db
-    .prepare('SELECT COALESCE(SUM(amount),0) AS bal FROM wallet_ledger WHERE user_id = ?')
-    .get(userId) as { bal: number };
-  return r.bal;
 }
 
 function campaignSpend(campaignId: string): number {
@@ -120,16 +114,17 @@ router.get('/click/:adId', (req, res) => {
   // خصم ذرّي + إيقاف الحملة عند الحدود (حواجز الأمان — راجع docs/ads-platform/03)
   const tx = db.transaction(() => {
     if (ad.status === 'active' && balanceOf(ad.user_id) >= ad.bid_amount) {
-      db.prepare(
-        'INSERT INTO wallet_ledger (id, user_id, type, amount, ref) VALUES (?, ?, ?, ?, ?)'
-      ).run(uuid(), ad.user_id, 'spend', -ad.bid_amount, ad.campaign_id);
+      addEntry(ad.user_id, 'spend', -ad.bid_amount, ad.campaign_id);
 
       db.prepare(
         `INSERT INTO ad_events (id, ad_id, campaign_id, type, user_hash, cost)
          VALUES (?, ?, ?, 'click', ?, ?)`
       ).run(uuid(), ad.id, ad.campaign_id, hashUser(req.ip || 'anon'), ad.bid_amount);
 
-      // أوقف الحملة إن نفد الرصيد أو بلغت الميزانية
+      // تسهيل: الشحن التلقائي إن كان مفعّلاً ونزل الرصيد دون الحد
+      maybeAutoRecharge(ad.user_id);
+
+      // أوقف الحملة إن نفد الرصيد (بعد محاولة الشحن) أو بلغت الميزانية
       const exhausted =
         balanceOf(ad.user_id) < ad.bid_amount ||
         campaignSpend(ad.campaign_id) + ad.bid_amount > ad.budget_total;

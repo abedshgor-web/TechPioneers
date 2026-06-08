@@ -49,21 +49,52 @@ async function showDashboard(user) {
   $('dashView').style.display = 'block';
   $('logoutBtn').style.display = 'inline-block';
   $('who').textContent = user ? user.email : '';
-  await refresh();
+  await Promise.all([refresh(), loadTemplates()]);
 }
 
 async function refresh() {
-  const [{ balance }, { campaigns }, reportData] = await Promise.all([
+  const [wallet, { campaigns }, reportData] = await Promise.all([
     api('/wallet'),
     api('/campaigns'),
     api('/reports'),
   ]);
-  $('balance').textContent = fmt(balance);
+  $('balance').textContent = fmt(wallet.balance);
   $('campCount').textContent = campaigns.length;
   $('activeCount').textContent = campaigns.filter((c) => c.status === 'active').length;
+  $('autoRecharge').checked = !!(wallet.settings && wallet.settings.auto_recharge);
 
   renderCampaigns(campaigns);
   renderReport(reportData.report);
+}
+
+/* تسهيل: تفعيل/إيقاف الشحن التلقائي */
+$('autoRecharge').onchange = async (e) => {
+  try {
+    await api('/wallet/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ autoRecharge: e.target.checked, threshold: 500, amount: 2000 }),
+    });
+    await refresh();
+  } catch (err) { alert(err.message); e.target.checked = !e.target.checked; }
+};
+
+/* تسهيل: قوالب جاهزة لإنشاء حملة بنقرة */
+async function loadTemplates() {
+  const box = $('templates');
+  try {
+    const { templates } = await api('/templates');
+    box.innerHTML = '';
+    for (const t of templates) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost';
+      btn.textContent = '＋ ' + t.name;
+      btn.onclick = async () => {
+        try { await api(`/templates/${t.key}/use`, { method: 'POST' }); await refresh(); }
+        catch (e) { alert(e.message); }
+      };
+      box.appendChild(btn);
+    }
+  } catch { box.innerHTML = '<span class="muted">تعذّر تحميل القوالب.</span>'; }
 }
 
 function renderCampaigns(campaigns) {

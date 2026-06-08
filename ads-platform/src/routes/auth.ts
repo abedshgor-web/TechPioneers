@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import { db } from '../db';
 import { signToken } from '../auth';
+import { addEntry, WELCOME_BONUS_CENTS } from '../ledger';
 
 const router = Router();
 
@@ -25,12 +26,22 @@ router.post('/register', (req, res) => {
 
   const id = uuid();
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare(
-    'INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)'
-  ).run(id, email, hash, 'advertiser');
+
+  // إنشاء الحساب + الإعدادات الافتراضية + الرصيد الترحيبي ذرّياً
+  db.transaction(() => {
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)'
+    ).run(id, email, hash, 'advertiser');
+    db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(id);
+    addEntry(id, 'bonus', WELCOME_BONUS_CENTS, 'welcome');
+  })();
 
   const token = signToken({ sub: id, role: 'advertiser', email });
-  res.status(201).json({ token, user: { id, email, role: 'advertiser' } });
+  res.status(201).json({
+    token,
+    user: { id, email, role: 'advertiser' },
+    welcomeBonus: WELCOME_BONUS_CENTS,
+  });
 });
 
 /** تسجيل الدخول */
