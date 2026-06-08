@@ -12,6 +12,7 @@ import serveRoutes from './routes/serve';
 import reportRoutes from './routes/reports';
 import templateRoutes from './routes/templates';
 import adminRoutes from './routes/admin';
+import uploadRoutes, { UPLOAD_DIR } from './routes/uploads';
 import { handleWebhook } from './payments';
 
 initSchema();
@@ -42,8 +43,10 @@ app.use('/api/serve', serveRoutes);    // /api/serve + /api/serve/click/:adId
 app.use('/api/reports', reportRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/uploads', uploadRoutes);
 
-// تقديم الواجهة الثابتة (صفحة الهبوط + لوحة المعلن)
+// تقديم الصور المرفوعة والواجهة الثابتة (الهبوط + لوحات المستخدمين)
+app.use('/uploads', express.static(UPLOAD_DIR));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const PORT = Number(process.env.PORT) || 4000;

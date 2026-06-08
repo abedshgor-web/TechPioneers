@@ -148,19 +148,50 @@ function renderReport(report) {
     .join('');
 }
 
-async function addAd(campaignId) {
-  const headline = prompt('عنوان الإعلان:');
-  if (!headline) return;
-  const destUrl = prompt('رابط الوجهة (https://):', 'https://example.com');
-  if (!destUrl) return;
-  try {
-    await api(`/campaigns/${campaignId}/ads`, {
-      method: 'POST',
-      body: JSON.stringify({ headline, body: '', destUrl }),
-    });
-    alert('تمت إضافة الإعلان وهو قيد المراجعة. سيُعرض بعد اعتماده من الإدارة وتفعيل الحملة.');
-  } catch (e) { alert(e.message); }
+let adFormCampaign = null;
+
+function addAd(campaignId) {
+  adFormCampaign = campaignId;
+  $('adHeadline').value = '';
+  $('adBody').value = '';
+  $('adDest').value = 'https://';
+  $('adImage').value = '';
+  $('adError').textContent = '';
+  $('adDialog').showModal();
 }
+
+/** رفع الصورة (إن وُجدت) عبر multipart ثم إنشاء الإعلان */
+async function uploadImage(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch('/api/uploads', { method: 'POST', headers: { Authorization: 'Bearer ' + token() }, body: fd });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'تعذّر رفع الصورة');
+  return data.url;
+}
+
+$('adSubmit').onclick = async (e) => {
+  e.preventDefault();
+  $('adError').textContent = '';
+  const headline = $('adHeadline').value.trim();
+  const destUrl = $('adDest').value.trim();
+  if (!headline) { $('adError').textContent = 'العنوان مطلوب'; return; }
+  if (!/^https:\/\/.+/.test(destUrl)) { $('adError').textContent = 'رابط الوجهة يجب أن يبدأ بـ https://'; return; }
+  try {
+    let imageUrl;
+    const file = $('adImage').files[0];
+    if (file) imageUrl = await uploadImage(file);
+    await api(`/campaigns/${adFormCampaign}/ads`, {
+      method: 'POST',
+      body: JSON.stringify({ headline, body: $('adBody').value.trim(), destUrl, imageUrl }),
+    });
+    $('adDialog').close();
+    alert('تمت إضافة الإعلان وهو قيد المراجعة. سيُعرض بعد اعتماده من الإدارة وتفعيل الحملة.');
+    await refresh();
+  } catch (err) { $('adError').textContent = err.message; }
+};
+
+$('adCancel').onclick = (e) => { e.preventDefault(); $('adDialog').close(); };
 
 /* معاينة العرض الحي: تطلب إعلاناً من محرك العرض وتعرضه */
 $('serveBtn').onclick = async () => {
@@ -171,7 +202,11 @@ $('serveBtn').onclick = async () => {
     return;
   }
   const { ad } = await res.json();
+  const img = ad.imageUrl
+    ? `<img src="${escapeHtml(ad.imageUrl)}" alt="" style="width:100%;border-radius:8px;margin-bottom:10px" />`
+    : '';
   slot.innerHTML =
+    img +
     `<h3 style="margin:0 0 6px">${escapeHtml(ad.headline)}</h3>` +
     `<p class="muted" style="margin:0 0 12px">${escapeHtml(ad.body || '')}</p>` +
     `<a class="btn btn-primary" href="${ad.clickUrl}" target="_blank" rel="noopener">زيارة الإعلان ←</a>`;
