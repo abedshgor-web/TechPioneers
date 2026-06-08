@@ -1,5 +1,11 @@
 # سكافولد MVP — منصّة الإعلانات المستقلة
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/abedshgor-web/TechPioneers)
+
+> اضغط الزر أعلاه للنشر بنقرة على Render (يقرأ `render.yaml` تلقائياً). بعد
+> الدخول لحسابك، اضبط `ADMIN_EMAIL` و `ADMIN_PASSWORD` ثم **Apply** للحصول
+> على رابط عام مثل `https://ads-platform-XXXX.onrender.com`.
+
 نموذج أولي قابل للتشغيل للمرحلة 1 (راجع `../docs/ads-platform/` للخطة الكاملة).
 مكدّس مطابق لخبرة الفريق: **Express + TypeScript + SQLite + JWT**، مع واجهة ثابتة عربية (RTL).
 
