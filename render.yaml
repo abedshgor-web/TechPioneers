@@ -1,14 +1,35 @@
+# Render Blueprint — منصة الإعلانات المستقلة (هذا الفرع)
+# ملاحظة: render.yaml مستقل لكل فرع؛ هذا الإعداد يخص فرع ads-platform فقط
+# ولا يؤثر على الفروع الأخرى.
 services:
   - type: web
-    name: copytrade-pro
+    name: ads-platform
     runtime: node
-    branch: claude/trade-copying-platform-beXwU
-    buildCommand: npm install && cd client && npm install && npm run build && cd .. && cd server && npm install && npm run build
-    startCommand: cd server && node dist/index.js
+    rootDir: ads-platform
+    branch: claude/ads-platform-planning-goU2p
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
-      - key: JWT_SECRET
-        generateValue: true
-      - key: NODE_ENV
-        value: production
       - key: NODE_VERSION
         value: "20.11.0"
+      - key: NODE_ENV
+        value: production
+      # سرّ توقيع JWT — يولّده Render تلقائياً
+      - key: JWT_SECRET
+        generateValue: true
+      # حساب المدير — يُنشأ تلقائياً عند الإقلاع؛ اضبط القيم في Render
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # رابط التطبيق العام — املأه بعد أول نشر (لروابط دفع Stripe)
+      - key: APP_URL
+        sync: false
+      # يسمح بشحن تجريبي بلا Stripe لعرض المنصة — اجعله 0 في الإنتاج الحقيقي
+      - key: ALLOW_DEV_TOPUP
+        value: "1"
+      # للمدفوعات الحقيقية: أضف هذه في Render (اتركها فارغة للعرض التجريبي)
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
