@@ -6,6 +6,7 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     plan: string;
+    role: string;
   };
 }
 
@@ -13,6 +14,7 @@ interface JwtPayload {
   id: string;
   email: string;
   plan: string;
+  role?: string;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
@@ -33,6 +35,7 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
       id: decoded.id,
       email: decoded.email,
       plan: decoded.plan,
+      role: decoded.role || "user",
     };
     next();
   } catch {
