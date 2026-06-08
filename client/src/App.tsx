@@ -8,12 +8,10 @@ import MyCopiesPage from "./pages/MyCopiesPage";
 import SettingsPage from "./pages/SettingsPage";
 import MTConnectPage from "./pages/MTConnectPage";
 import AuthPage from "./pages/AuthPage";
-import AdsConsolePage from "./pages/ads/AdsConsolePage";
-import AdsAdminPage from "./pages/ads/AdsAdminPage";
 import { useAuth } from "./contexts/AuthContext";
 import { useLang } from "./LanguageContext";
 
-type Page = "dashboard" | "traders" | "my-copies" | "settings" | "mt-connect" | "ads" | "ads-admin";
+type Page = "dashboard" | "traders" | "my-copies" | "settings" | "mt-connect";
 
 function AppInner() {
   const { isRTL } = useLang();
@@ -60,10 +58,6 @@ function AppInner() {
             <MyCopiesPage onNavigateToTraders={() => setPage("traders")} />
           ) : page === "mt-connect" ? (
             <MTConnectPage />
-          ) : page === "ads" ? (
-            <AdsConsolePage />
-          ) : page === "ads-admin" ? (
-            <AdsAdminPage />
           ) : (
             <SettingsPage />
           )}

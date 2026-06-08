@@ -3,16 +3,14 @@ import { langLabels, Lang } from "../i18n";
 import { useAuth } from "../contexts/AuthContext";
 import { useState } from "react";
 
-type Page = "dashboard" | "traders" | "my-copies" | "settings" | "mt-connect" | "ads" | "ads-admin";
+type Page = "dashboard" | "traders" | "my-copies" | "settings" | "mt-connect";
 
 interface Props {
   page: Page;
   onNavigate: (page: Page) => void;
 }
 
-type NavItem = { page: Page; icon: JSX.Element; key: "dashboard" | "traders" | "myCopies" | "settings" | "mtConnect" | "adsConsole" | "adsAdmin" };
-
-const NAV_ITEMS: NavItem[] = [
+const NAV_ITEMS: { page: Page; icon: JSX.Element; key: "dashboard" | "traders" | "myCopies" | "settings" | "mtConnect" }[] = [
   {
     page: "dashboard",
     key: "dashboard",
@@ -61,36 +59,10 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-const ADS_ITEM: NavItem = {
-  page: "ads",
-  key: "adsConsole",
-  icon: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-    </svg>
-  ),
-};
-
-const ADMIN_ITEM: NavItem = {
-  page: "ads-admin",
-  key: "adsAdmin",
-  icon: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  ),
-};
-
 export default function Nav({ page, onNavigate }: Props) {
   const { tr, lang, setLang, isRTL } = useLang();
   const { user, logout } = useAuth();
   const [langOpen, setLangOpen] = useState(false);
-
-  const items: NavItem[] = [
-    ...NAV_ITEMS,
-    ADS_ITEM,
-    ...(user?.role === "admin" ? [ADMIN_ITEM] : []),
-  ];
 
   return (
     <>
@@ -109,7 +81,7 @@ export default function Nav({ page, onNavigate }: Props) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {items.map((item) => {
+          {NAV_ITEMS.map((item) => {
             const active = page === item.page;
             return (
               <button
@@ -182,7 +154,7 @@ export default function Nav({ page, onNavigate }: Props) {
 
       {/* ── Bottom nav: mobile ── */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-[#0a0f1a]/95 backdrop-blur-md border-t border-[#1a2235] flex z-40">
-        {items.map((item) => {
+        {NAV_ITEMS.map((item) => {
           const active = page === item.page;
           return (
             <button

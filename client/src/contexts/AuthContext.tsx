@@ -7,7 +7,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  setSession: (token: string, user: User) => void;
   loading: boolean;
 }
 
@@ -17,7 +16,6 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   register: async () => {},
   logout: () => {},
-  setSession: () => {},
   loading: true,
 });
 
@@ -88,20 +86,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = (): void => {
-    localStorage.removeItem("copytrade_token");
+    localStorage.removeItem("taskflow_token");
     setToken(null);
     setUser(null);
   };
 
-  // Replace the active session (e.g. after a token is re-issued with a new role).
-  const setSession = (newToken: string, newUser: User): void => {
-    localStorage.setItem("copytrade_token", newToken);
-    setToken(newToken);
-    setUser(newUser);
-  };
-
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, setSession, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

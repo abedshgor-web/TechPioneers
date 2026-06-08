@@ -4,7 +4,6 @@ import { useLang } from "../LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
 import TraderCard from "../components/TraderCard";
 import CopyModal from "../components/CopyModal";
-import AdSlot from "../components/ads/AdSlot";
 
 interface Props {
   onViewProfile: (trader: Trader) => void;
@@ -151,22 +150,16 @@ export default function TradersPage({ onViewProfile }: Props) {
                 <p className="text-slate-400 text-sm">No traders match your filters</p>
               </div>
             )
-            : filtered.flatMap((trader, idx) => {
-              const card = (
-                <TraderCard
-                  key={trader.id}
-                  trader={trader}
-                  rank={idx + 1}
-                  isCopying={copyingIds.has(trader.id)}
-                  onCopy={(t) => setCopyTarget(t)}
-                  onViewProfile={onViewProfile}
-                />
-              );
-              // Inject one native sponsored card into the feed.
-              return idx === 4
-                ? [card, <AdSlot key="ad-native" placement="traders_native_card" />]
-                : [card];
-            })
+            : filtered.map((trader, idx) => (
+              <TraderCard
+                key={trader.id}
+                trader={trader}
+                rank={idx + 1}
+                isCopying={copyingIds.has(trader.id)}
+                onCopy={(t) => setCopyTarget(t)}
+                onViewProfile={onViewProfile}
+              />
+            ))
         }
       </div>
 

@@ -3,7 +3,6 @@ import { Portfolio, CopySubscription, PerformanceSnapshot } from "../types";
 import { useLang } from "../LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
 import PerformanceChart from "../components/PerformanceChart";
-import AdSlot from "../components/ads/AdSlot";
 
 interface Props {
   onNavigateToTraders: () => void;
@@ -90,9 +89,6 @@ export default function Dashboard({ onNavigateToTraders, onNavigateToMyCopies }:
           </div>
         </div>
       </div>
-
-      {/* Sponsored placement */}
-      <AdSlot placement="dashboard_top_banner" />
 
       {/* Portfolio chart */}
       {portfolioChart.length > 1 ? (
