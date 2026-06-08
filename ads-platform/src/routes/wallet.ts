@@ -2,8 +2,11 @@ import { Router } from 'express';
 import { db } from '../db';
 import { requireAuth, AuthedRequest } from '../auth';
 import { balanceOf, addEntry, getSettings } from '../ledger';
+import { stripeEnabled, createTopupSession } from '../payments';
 
 const router = Router();
+
+const ALLOW_DEV_TOPUP = process.env.ALLOW_DEV_TOPUP === '1';
 
 /** GET /api/wallet — الرصيد الحالي + إعدادات الشحن التلقائي */
 router.get('/', requireAuth, (req: AuthedRequest, res) => {
@@ -11,17 +14,32 @@ router.get('/', requireAuth, (req: AuthedRequest, res) => {
 });
 
 /**
- * POST /api/wallet/topup — شحن تجريبي (MVP/تطوير فقط).
- * في الإنتاج يُضاف الرصيد فقط عبر Webhook من Stripe بعد تأكيد الدفع
- * (راجع docs/ads-platform/03).
+ * POST /api/wallet/topup — بدء شحن الرصيد.
+ * مع Stripe: يعيد رابط صفحة دفع مستضافة؛ الرصيد يُضاف فعلياً عبر الـ Webhook
+ * بعد تأكيد الدفع (لا نعتمد على رد المتصفح). راجع docs/ads-platform/03.
+ * بلا Stripe: شحن تجريبي مباشر فقط إن فُعّل ALLOW_DEV_TOPUP=1 (تطوير).
  */
-router.post('/topup', requireAuth, (req: AuthedRequest, res) => {
+router.post('/topup', requireAuth, async (req: AuthedRequest, res) => {
   const amount = Number(req.body?.amount);
   if (!Number.isInteger(amount) || amount <= 0) {
     return res.status(400).json({ error: 'المبلغ يجب أن يكون عدداً صحيحاً موجباً (بالسنت)' });
   }
-  addEntry(req.user!.sub, 'topup', amount, 'dev-topup');
-  res.status(201).json({ balance: balanceOf(req.user!.sub) });
+
+  if (stripeEnabled) {
+    try {
+      const url = await createTopupSession(req.user!.sub, amount);
+      return res.status(201).json({ checkoutUrl: url });
+    } catch {
+      return res.status(502).json({ error: 'تعذّر بدء عملية الدفع، حاول لاحقاً' });
+    }
+  }
+
+  if (ALLOW_DEV_TOPUP) {
+    addEntry(req.user!.sub, 'topup', amount, 'dev-topup-' + Date.now());
+    return res.status(201).json({ balance: balanceOf(req.user!.sub), dev: true });
+  }
+
+  return res.status(503).json({ error: 'مزوّد الدفع غير مُهيّأ' });
 });
 
 /** PUT /api/wallet/settings — تفعيل/ضبط الشحن التلقائي (تسهيل للمعلن) */

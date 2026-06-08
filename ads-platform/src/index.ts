@@ -12,12 +12,24 @@ import serveRoutes from './routes/serve';
 import reportRoutes from './routes/reports';
 import templateRoutes from './routes/templates';
 import adminRoutes from './routes/admin';
+import { handleWebhook } from './payments';
 
 initSchema();
 seedAdmin();
 
 const app = express();
 app.use(cors());
+
+// Webhook الدفع يحتاج الجسم الخام للتحقق من التوقيع — يُسجَّل قبل express.json
+app.post('/api/webhooks/stripe', express.raw({ type: '*/*' }), (req, res) => {
+  try {
+    const result = handleWebhook(req.body as Buffer, req.header('stripe-signature'));
+    res.json({ received: true, ...result });
+  } catch {
+    res.status(400).json({ error: 'توقيع غير صالح' });
+  }
+});
+
 app.use(express.json());
 
 // واجهة برمجة التطبيقات

@@ -180,8 +180,12 @@ $('serveBtn').onclick = async () => {
 };
 
 $('topupBtn').onclick = async () => {
-  try { await api('/wallet/topup', { method: 'POST', body: JSON.stringify({ amount: 5000 }) }); await refresh(); }
-  catch (e) { alert(e.message); }
+  try {
+    const r = await api('/wallet/topup', { method: 'POST', body: JSON.stringify({ amount: 5000 }) });
+    // مع Stripe: توجيه لصفحة الدفع المستضافة؛ في التطوير: شحن مباشر
+    if (r.checkoutUrl) { window.location.href = r.checkoutUrl; return; }
+    await refresh();
+  } catch (e) { alert(e.message); }
 };
 
 $('newCampBtn').onclick = async () => {

@@ -45,9 +45,27 @@ npm install
 npm run dev               # http://localhost:4000
 ```
 
+## المدفوعات (Stripe)
+- **الشحن** عبر **Stripe Checkout**: `POST /api/wallet/topup` يعيد `checkoutUrl`
+  لصفحة دفع مستضافة. الرصيد لا يُضاف من رد المتصفح بل عبر **الـ Webhook**.
+- **الـ Webhook**: `POST /api/webhooks/stripe` يتحقق من التوقيع (جسم خام) ويضيف
+  الرصيد عند `checkout.session.completed` بشكل **idempotent** (مرجع = `session.id`)
+  فلا يتكرر الشحن عند إعادة إرسال الحدث.
+- طبقة المدفوعات معزولة في `src/payments.ts` خلف واجهة واحدة، فيسهل إضافة مزوّد
+  آخر لاحقاً دون لمس منطق المحفظة (راجع `docs/ads-platform/03`).
+- **التطوير بلا Stripe**: اضبط `ALLOW_DEV_TOPUP=1` لشحن مباشر تجريبي؛ ومن دون
+  Stripe ولا هذا العلم يعيد `topup` رمز 503.
+
+### إعداد Stripe
+```bash
+STRIPE_SECRET_KEY=sk_live_...      # أو sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...    # من لوحة Stripe أو stripe-cli
+APP_URL=https://your-domain        # لروابط النجاح/الإلغاء
+# اختبار محلي:  stripe listen --forward-to localhost:4000/api/webhooks/stripe
+```
+
 ## ملاحظات
 - **المبالغ بالسنت** (أعداد صحيحة) لتفادي أخطاء الفاصلة العائمة.
-- `POST /api/wallet/topup` تجريبي فقط؛ في الإنتاج يُضاف الرصيد عبر Webhook من Stripe.
 - SQLite للتطوير؛ الإنتاج ينتقل إلى **PostgreSQL** (راجع `docs/ads-platform/06`).
 
 ## غير مُنفَّذ بعد (مراحل لاحقة)

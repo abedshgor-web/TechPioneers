@@ -16,6 +16,22 @@ export function addEntry(userId: string, type: string, amount: number, ref?: str
   ).run(uuid(), userId, type, amount, ref ?? null);
 }
 
+/** هل يوجد قيد بهذا المرجع؟ (لمنع تكرار الإضافة من Webhook) */
+export function hasLedgerRef(ref: string): boolean {
+  const row = db.prepare('SELECT 1 FROM wallet_ledger WHERE ref = ? LIMIT 1').get(ref);
+  return !!row;
+}
+
+/**
+ * إضافة رصيد من مزوّد دفع بشكل غير قابل للتكرار (idempotent).
+ * إن وُجد قيد بنفس providerRef لا يضيف شيئاً ويعيد false.
+ */
+export function creditFromProvider(userId: string, amount: number, providerRef: string): boolean {
+  if (hasLedgerRef(providerRef)) return false;
+  addEntry(userId, 'topup', amount, providerRef);
+  return true;
+}
+
 /** الرصيد الترحيبي الممنوح عند التسجيل (بالسنت) */
 export const WELCOME_BONUS_CENTS = 1000; // 10.00
 
