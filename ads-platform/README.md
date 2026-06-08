@@ -37,13 +37,31 @@
 - **سجل تدقيق**: كل قرار إداري يُسجَّل في `audit_logs`.
 - حساب المدير يُنشأ تلقائياً عند الإقلاع من `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
 
-## التشغيل
+## التشغيل محلياً
 ```bash
 cd ads-platform
-cp .env.example .env      # عدّل JWT_SECRET
+cp .env.example .env      # عدّل JWT_SECRET و فعّل ALLOW_DEV_TOPUP=1 للتجربة
 npm install
 npm run dev               # http://localhost:4000
 ```
+الصفحات: `/` صفحة الهبوط · `/app.html` لوحة المعلِن · `/admin.html` لوحة المدير.
+
+## النشر على Render (رابط عام)
+المستودع يحوي `render.yaml` في الجذر مهيّأً لنشر هذه المنصة:
+1. في Render: **New → Blueprint**، واربط هذا المستودع واختر فرع
+   `claude/ads-platform-planning-goU2p`.
+2. Render يقرأ `render.yaml` تلقائياً ويُنشئ خدمة `ads-platform`.
+3. اضبط `ADMIN_EMAIL` و `ADMIN_PASSWORD` (للدخول إلى `/admin.html`).
+4. بعد أول نشر، انسخ رابط الخدمة وضعه في `APP_URL`.
+5. (اختياري) أضف `STRIPE_SECRET_KEY` و `STRIPE_WEBHOOK_SECRET` للمدفوعات
+   الحقيقية، واجعل `ALLOW_DEV_TOPUP=0`.
+
+> بديل يدوي: **New → Web Service** مع **Root Directory = `ads-platform`**،
+> Build: `npm install && npm run build`، Start: `npm start`.
+
+> ملاحظة بيانات: القرص على Render مؤقت، فبيانات SQLite تُعاد عند كل نشر
+> (حساب المدير يُعاد إنشاؤه تلقائياً من متغيرات البيئة). للإنتاج الفعلي
+> انتقل إلى PostgreSQL أو اربط قرصاً دائماً (راجع `docs/ads-platform/06`).
 
 ## المدفوعات (Stripe)
 - **الشحن** عبر **Stripe Checkout**: `POST /api/wallet/topup` يعيد `checkoutUrl`
