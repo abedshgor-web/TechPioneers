@@ -66,7 +66,11 @@ export default function AdSlot({ placement, className = "" }: Props) {
   const a = ACCENTS[ad.accent] ?? ACCENTS.blue;
   const onClick = () => {
     track("click", ad.clickToken);
-    window.open(ad.landingUrl, "_blank", "noopener,noreferrer");
+    // Pass a conversion ref so the advertiser's page can fire the conversion
+    // pixel: <img src="<host>/api/ads/conversion?ref=<tp_ref>">.
+    const sep = ad.landingUrl.includes("?") ? "&" : "?";
+    const url = `${ad.landingUrl}${sep}tp_ref=${encodeURIComponent(ad.conversionToken)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   // Compact horizontal banner

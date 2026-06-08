@@ -19,6 +19,7 @@ export interface ServedAd {
   advertiser: string;
   impressionToken: string;
   clickToken: string;
+  conversionToken: string;
 }
 
 export interface AdCreative {
@@ -39,18 +40,22 @@ export interface AdCampaign {
   advertiser_id: string;
   name: string;
   objective: string;
-  pricing_model: "cpc" | "cpm";
+  pricing_model: "cpc" | "cpm" | "cpa";
   bid_amount: number;
   daily_budget: number;
   total_budget: number;
   spent: number;
   placement: string;
+  frequency_cap?: number;
   status: "draft" | "pending_review" | "active" | "paused" | "completed" | "rejected";
   review_notes: string | null;
   created_at: string;
   impressions?: number;
   clicks?: number;
+  conversions?: number;
   ctr?: number;
+  cvr?: number;
+  cpa?: number;
   creative?: AdCreative;
 }
 

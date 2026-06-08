@@ -22,7 +22,7 @@ interface CampaignRow {
   id: string; advertiser_id: string; name: string; objective: string;
   pricing_model: string; bid_amount: number; daily_budget: number;
   total_budget: number; spent: number; placement: string; targeting: string | null;
-  status: string; review_notes: string | null; created_at: string;
+  frequency_cap: number; status: string; review_notes: string | null; created_at: string;
 }
 interface CreativeRow {
   id: string; campaign_id: string; format: string; headline: string; body: string | null;
@@ -75,6 +75,22 @@ function todaySpend(campaignId: string): number {
   ).get(campaignId, today()) as { s: number };
   return r.s;
 }
+// Impressions shown to a given user for a campaign within the last 24h.
+function userImpressions24h(campaignId: string, userId: string): number {
+  const since = new Date(Date.now() - 86400000).toISOString();
+  const r = db.prepare(
+    "SELECT COUNT(*) AS c FROM ad_events WHERE campaign_id = ? AND user_id = ? AND type = 'impression' AND created_at > ?"
+  ).get(campaignId, userId, since) as { c: number };
+  return r.c;
+}
+// Even pacing: spread the daily budget across the day (with a small head start).
+function pacedOut(c: CampaignRow): boolean {
+  if (c.daily_budget <= 0) return false;
+  const now = new Date();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  const fraction = Math.min(1, minutes / 1440 + 0.15);
+  return todaySpend(c.id) >= c.daily_budget * fraction;
+}
 
 // =====================================================================
 // ADVERTISER ACCOUNT
@@ -121,6 +137,22 @@ function creditWallet(advId: string, amount: number, ref: string): number {
     return balance;
   });
   return tx();
+}
+
+// Deduct an event cost from the advertiser's wallet (must run inside a tx).
+// House advertisers are never charged. Pauses/completes the campaign when depleted.
+function chargeAdvertiser(advId: string, campId: string, cost: number) {
+  if (cost <= 0) return;
+  const adv = db.prepare("SELECT wallet_balance, is_house FROM advertisers WHERE id = ?").get(advId) as { wallet_balance: number; is_house: number } | undefined;
+  if (!adv || adv.is_house) return;
+  const balance = Math.max(0, Math.round((adv.wallet_balance - cost) * 100) / 100);
+  db.prepare("UPDATE advertisers SET wallet_balance = ? WHERE id = ?").run(balance, advId);
+  db.prepare("UPDATE ad_campaigns SET spent = spent + ? WHERE id = ?").run(cost, campId);
+  db.prepare("INSERT INTO wallet_ledger (id, advertiser_id, type, amount, balance_after, ref, created_at) VALUES (?, ?, 'spend', ?, ?, ?, ?)")
+    .run(`led_${randomUUID()}`, advId, -cost, balance, campId, nowIso());
+  const fresh = db.prepare("SELECT spent, total_budget FROM ad_campaigns WHERE id = ?").get(campId) as { spent: number; total_budget: number };
+  if (balance <= 0) db.prepare("UPDATE ad_campaigns SET status = 'paused' WHERE id = ?").run(campId);
+  else if (fresh.total_budget > 0 && fresh.spent >= fresh.total_budget) db.prepare("UPDATE ad_campaigns SET status = 'completed' WHERE id = ?").run(campId);
 }
 
 // POST /api/ads/wallet/topup — { amount }
@@ -192,20 +224,23 @@ router.post("/campaigns", requireAuth, requireRole("advertiser", "admin"), (req:
   if (!c.headline || !String(c.headline).trim()) { res.status(400).json({ error: "Ad headline is required" }); return; }
   if (!c.landing_url || !/^https?:\/\//i.test(String(c.landing_url))) { res.status(400).json({ error: "A valid https landing URL is required" }); return; }
 
-  const pricing = b.pricing_model === "cpm" ? "cpm" : "cpc";
+  const pricing = ["cpm", "cpa"].includes(b.pricing_model) ? b.pricing_model : "cpc";
   const placement = ["dashboard_top_banner", "traders_native_card"].includes(b.placement) ? b.placement : "dashboard_top_banner";
-  const bid = Math.max(pricing === "cpc" ? 0.05 : 0.5, num(b.bid_amount, pricing === "cpc" ? 0.5 : 5));
+  const minBid = pricing === "cpc" ? 0.05 : pricing === "cpm" ? 0.5 : 1;
+  const defBid = pricing === "cpc" ? 0.5 : pricing === "cpm" ? 5 : 10;
+  const bid = Math.max(minBid, num(b.bid_amount, defBid));
+  const freqCap = Math.max(0, Math.floor(num(b.frequency_cap, 0)));
   const campId = `camp_${randomUUID()}`;
 
   db.prepare(`
     INSERT INTO ad_campaigns (id, advertiser_id, name, objective, pricing_model, bid_amount,
-      daily_budget, total_budget, spent, placement, targeting, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 'draft', ?)
+      daily_budget, total_budget, spent, placement, targeting, frequency_cap, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'draft', ?)
   `).run(
     campId, adv.id, String(b.name).trim().slice(0, 80),
     b.objective === "awareness" ? "awareness" : "traffic", pricing, bid,
     Math.max(0, num(b.daily_budget, 0)), Math.max(0, num(b.total_budget, 0)),
-    placement, b.targeting ? JSON.stringify(b.targeting) : null, nowIso()
+    placement, b.targeting ? JSON.stringify(b.targeting) : null, freqCap, nowIso()
   );
 
   db.prepare(`
@@ -280,22 +315,40 @@ router.get("/reports", requireAuth, requireRole("advertiser", "admin"), (req: Au
   const rows = db.prepare(
     `SELECT c.id, c.name, c.status, c.pricing_model, c.bid_amount, c.total_budget, c.spent,
         COALESCE(SUM(CASE WHEN e.type='impression' THEN 1 ELSE 0 END),0) AS impressions,
-        COALESCE(SUM(CASE WHEN e.type='click' THEN 1 ELSE 0 END),0) AS clicks
+        COALESCE(SUM(CASE WHEN e.type='click' THEN 1 ELSE 0 END),0) AS clicks,
+        COALESCE(SUM(CASE WHEN e.type='conversion' THEN 1 ELSE 0 END),0) AS conversions
      FROM ad_campaigns c LEFT JOIN ad_events e ON e.campaign_id = c.id
      WHERE c.advertiser_id = ? GROUP BY c.id ORDER BY c.created_at DESC`
-  ).all(adv.id) as Array<CampaignRow & { impressions: number; clicks: number }>;
+  ).all(adv.id) as Array<CampaignRow & { impressions: number; clicks: number; conversions: number }>;
 
   const campaigns = rows.map((r) => ({
     id: r.id, name: r.name, status: r.status, pricing_model: r.pricing_model,
-    impressions: r.impressions, clicks: r.clicks, spent: Math.round(r.spent * 100) / 100,
+    impressions: r.impressions, clicks: r.clicks, conversions: r.conversions,
+    spent: Math.round(r.spent * 100) / 100,
     ctr: r.impressions ? r.clicks / r.impressions : 0,
     cpc: r.clicks ? r.spent / r.clicks : 0,
+    cvr: r.clicks ? r.conversions / r.clicks : 0,
+    cpa: r.conversions ? r.spent / r.conversions : 0,
   }));
   const totals = campaigns.reduce((a, c) => ({
     impressions: a.impressions + c.impressions, clicks: a.clicks + c.clicks,
-    spent: Math.round((a.spent + c.spent) * 100) / 100,
-  }), { impressions: 0, clicks: 0, spent: 0 });
-  res.json({ campaigns, totals, wallet_balance: adv.wallet_balance });
+    conversions: a.conversions + c.conversions, spent: Math.round((a.spent + c.spent) * 100) / 100,
+  }), { impressions: 0, clicks: 0, conversions: 0, spent: 0 });
+
+  // 14-day daily spend series (zero-filled) for charting.
+  const since = new Date(Date.now() - 13 * 86400000).toISOString().slice(0, 10);
+  const dailyRows = db.prepare(
+    `SELECT substr(created_at,1,10) AS d, COALESCE(SUM(cost),0) AS spend
+     FROM ad_events WHERE advertiser_id = ? AND substr(created_at,1,10) >= ? GROUP BY d`
+  ).all(adv.id, since) as Array<{ d: string; spend: number }>;
+  const byDay = new Map(dailyRows.map((r) => [r.d, Math.round(r.spend * 100) / 100]));
+  const series: Array<{ date: string; equity: number }> = [];
+  for (let i = 13; i >= 0; i--) {
+    const day = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    series.push({ date: day, equity: byDay.get(day) ?? 0 });
+  }
+
+  res.json({ campaigns, totals, series, wallet_balance: adv.wallet_balance });
 });
 
 // =====================================================================
@@ -323,11 +376,13 @@ function matchesTargeting(targeting: string | null, ctx: { locale: string; plan:
 router.get("/serve", (req: Request, res: Response): void => {
   const placement = String(req.query.placement || "");
   if (!placement) { res.status(400).json({ error: "placement is required" }); return; }
+  const uid = optionalUserId(req);
   const ctx = {
+    userId: uid,
     locale: String(req.query.locale || "en"),
     plan: String(req.query.plan || "free"),
     country: req.query.country ? String(req.query.country) : undefined,
-    interests: userInterests(optionalUserId(req)),
+    interests: userInterests(uid),
   };
 
   const candidates = db.prepare(
@@ -337,14 +392,22 @@ router.get("/serve", (req: Request, res: Response): void => {
   const eligible = candidates.filter((c) => {
     if (c.total_budget > 0 && c.spent >= c.total_budget) return false;
     if (c.daily_budget > 0 && todaySpend(c.id) >= c.daily_budget) return false;
+    if (pacedOut(c)) return false;
+    if (c.frequency_cap > 0 && uid && userImpressions24h(c.id, uid) >= c.frequency_cap) return false;
     return matchesTargeting(c.targeting, ctx);
   });
   if (eligible.length === 0) { res.status(204).end(); return; }
 
-  // Rank by eCPM (cpm bid directly; cpc bid × assumed CTR × 1000).
+  // Rank by eCPM: cpm = bid; cpc = bid×CTR×1000; cpa = bid×CTR×CVR×1000.
   const ASSUMED_CTR = 0.02;
+  const ASSUMED_CVR = 0.05;
   const ranked = eligible
-    .map((c) => ({ c, ecpm: c.pricing_model === "cpm" ? c.bid_amount : c.bid_amount * ASSUMED_CTR * 1000 }))
+    .map((c) => ({
+      c,
+      ecpm: c.pricing_model === "cpm" ? c.bid_amount
+        : c.pricing_model === "cpa" ? c.bid_amount * ASSUMED_CTR * ASSUMED_CVR * 1000
+        : c.bid_amount * ASSUMED_CTR * 1000,
+    }))
     .sort((a, b) => b.ecpm - a.ecpm || Math.random() - 0.5);
   const winner = ranked[0].c;
 
@@ -368,6 +431,7 @@ router.get("/serve", (req: Request, res: Response): void => {
     advertiser: adv?.company_name || "Sponsored",
     impressionToken: signEventToken({ cid: creative.id, campid: winner.id, advid: winner.advertiser_id, plc: placement, kind: "impression" }),
     clickToken: signEventToken({ cid: creative.id, campid: winner.id, advid: winner.advertiser_id, plc: placement, kind: "click" }),
+    conversionToken: signEventToken({ cid: creative.id, campid: winner.id, advid: winner.advertiser_id, plc: placement, kind: "conversion" }),
   });
 });
 
@@ -400,24 +464,40 @@ router.post("/events", (req: Request, res: Response): void => {
     db.prepare(
       "INSERT INTO ad_events (id, type, creative_id, campaign_id, advertiser_id, placement, user_id, cost, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ).run(`ev_${randomUUID()}`, type, payload.cid, payload.campid, payload.advid, payload.plc, userId || null, cost, nowIso());
-
-    if (cost > 0) {
-      const adv = db.prepare("SELECT wallet_balance, is_house FROM advertisers WHERE id = ?").get(payload.advid) as { wallet_balance: number; is_house: number };
-      if (!adv.is_house) {
-        const balance = Math.round((adv.wallet_balance - cost) * 100) / 100;
-        db.prepare("UPDATE advertisers SET wallet_balance = ? WHERE id = ?").run(Math.max(0, balance), payload.advid);
-        db.prepare("UPDATE ad_campaigns SET spent = spent + ? WHERE id = ?").run(cost, payload.campid);
-        db.prepare("INSERT INTO wallet_ledger (id, advertiser_id, type, amount, balance_after, ref, created_at) VALUES (?, ?, 'spend', ?, ?, ?, ?)")
-          .run(`led_${randomUUID()}`, payload.advid, -cost, Math.max(0, balance), payload.campid, nowIso());
-
-        const fresh = db.prepare("SELECT spent, total_budget FROM ad_campaigns WHERE id = ?").get(payload.campid) as { spent: number; total_budget: number };
-        if (balance <= 0) db.prepare("UPDATE ad_campaigns SET status = 'paused' WHERE id = ?").run(payload.campid);
-        else if (fresh.total_budget > 0 && fresh.spent >= fresh.total_budget) db.prepare("UPDATE ad_campaigns SET status = 'completed' WHERE id = ?").run(payload.campid);
-      }
-    }
+    chargeAdvertiser(payload.advid, payload.campid, cost);
   });
   tx();
   res.json({ ok: true });
+});
+
+// GET /api/ads/conversion?ref=<conversionToken> — advertiser postback / tracking pixel.
+// Returns a 1x1 gif so it can be embedded as <img> on the advertiser's thank-you page.
+router.get("/conversion", (req: Request, res: Response): void => {
+  const gif = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
+  res.setHeader("Content-Type", "image/gif");
+  res.setHeader("Cache-Control", "no-store");
+
+  const payload = verifyEventToken(String(req.query.ref || ""));
+  if (!payload || payload.kind !== "conversion") { res.end(gif); return; }
+
+  const camp = db.prepare("SELECT * FROM ad_campaigns WHERE id = ?").get(payload.campid) as CampaignRow | undefined;
+  if (!camp || camp.status !== "active") { res.end(gif); return; }
+
+  // Debounce duplicate fires (e.g. page reload) within 30s.
+  const recent = db.prepare(
+    "SELECT id FROM ad_events WHERE type = 'conversion' AND creative_id = ? AND created_at > ?"
+  ).get(payload.cid, new Date(Date.now() - 30000).toISOString());
+  if (recent) { res.end(gif); return; }
+
+  const cost = camp.pricing_model === "cpa" ? Math.round(camp.bid_amount * 100) / 100 : 0;
+  const tx = db.transaction(() => {
+    db.prepare(
+      "INSERT INTO ad_events (id, type, creative_id, campaign_id, advertiser_id, placement, user_id, cost, created_at) VALUES (?, 'conversion', ?, ?, ?, ?, NULL, ?, ?)"
+    ).run(`ev_${randomUUID()}`, payload.cid, payload.campid, payload.advid, payload.plc, cost, nowIso());
+    chargeAdvertiser(payload.advid, payload.campid, cost);
+  });
+  tx();
+  res.end(gif);
 });
 
 // =====================================================================

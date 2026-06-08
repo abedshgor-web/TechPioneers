@@ -13,6 +13,13 @@ try {
   /* column already exists */
 }
 
+// frequency_cap: max impressions per user per 24h (0 = unlimited)
+try {
+  db.exec(`ALTER TABLE ad_campaigns ADD COLUMN frequency_cap INTEGER NOT NULL DEFAULT 0`);
+} catch {
+  /* column already exists or table not created yet (created below) */
+}
+
 // ── Tables ──
 db.exec(`
   CREATE TABLE IF NOT EXISTS advertisers (
@@ -41,6 +48,7 @@ db.exec(`
     spent REAL NOT NULL DEFAULT 0,
     placement TEXT NOT NULL DEFAULT 'dashboard_top_banner',
     targeting TEXT,                                   -- JSON: { locales, plans, countries, interests }
+    frequency_cap INTEGER NOT NULL DEFAULT 0,         -- max impressions/user/24h (0 = unlimited)
     status TEXT NOT NULL DEFAULT 'draft',             -- draft|pending_review|active|paused|completed|rejected
     review_notes TEXT,
     created_at TEXT NOT NULL,

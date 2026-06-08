@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, ChangeEvent } from "react";
 import { useLang } from "../../LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { AdCampaign, Advertiser, User } from "../../types";
+import { AdCampaign, Advertiser, User, PerformanceSnapshot } from "../../types";
+import PerformanceChart from "../../components/PerformanceChart";
 
 const inputCls =
   "w-full bg-[#0b1119] border border-[#1a2235] rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:border-brand-500 outline-none transition-colors";
@@ -249,11 +250,12 @@ function Metric({ label, value }: { label: string; value: string }) {
 function CreateTab({ authH, flash, onCreated, onNeedFunds }: { authH: HeadersInit; flash: (m: string) => void; onCreated: () => void; onNeedFunds: () => void }) {
   const { tr } = useLang();
   const [f, setF] = useState({
-    name: "", objective: "traffic", pricing_model: "cpc" as "cpc" | "cpm", bid_amount: 0.5,
-    daily_budget: 25, total_budget: 200, placement: "dashboard_top_banner",
+    name: "", objective: "traffic", pricing_model: "cpc" as "cpc" | "cpm" | "cpa", bid_amount: 0.5,
+    daily_budget: 25, total_budget: 200, frequency_cap: 0, placement: "dashboard_top_banner",
     headline: "", body: "", cta_label: "Learn More", landing_url: "https://", accent: "blue",
     image_url: "", t_plans: [] as string[], t_locales: [] as string[], t_countries: "", t_interests: "",
   });
+  const bidUnit = f.pricing_model === "cpc" ? tr.perClick : f.pricing_model === "cpm" ? tr.per1000 : tr.perConversion;
   const [busy, setBusy] = useState(false);
   const set = (k: string, v: unknown) => setF((s) => ({ ...s, [k]: v }));
   const togglePlan = (v: string) => setF((s) => ({ ...s, t_plans: s.t_plans.includes(v) ? s.t_plans.filter((x) => x !== v) : [...s.t_plans, v] }));
@@ -282,7 +284,8 @@ function CreateTab({ authH, flash, onCreated, onNeedFunds }: { authH: HeadersIni
       method: "POST", headers: authH,
       body: JSON.stringify({
         name: f.name, objective: f.objective, pricing_model: f.pricing_model, bid_amount: Number(f.bid_amount),
-        daily_budget: Number(f.daily_budget), total_budget: Number(f.total_budget), placement: f.placement,
+        daily_budget: Number(f.daily_budget), total_budget: Number(f.total_budget),
+        frequency_cap: Number(f.frequency_cap), placement: f.placement,
         targeting: Object.keys(targeting).length ? targeting : undefined,
         creative: { headline: f.headline, body: f.body, cta_label: f.cta_label, landing_url: f.landing_url, accent: f.accent, locale: "en", image_url: f.image_url || undefined },
       }),
@@ -336,15 +339,27 @@ function CreateTab({ authH, flash, onCreated, onNeedFunds }: { authH: HeadersIni
             <select className={inputCls} value={f.pricing_model} onChange={(e) => set("pricing_model", e.target.value)}>
               <option value="cpc">CPC</option>
               <option value="cpm">CPM</option>
+              <option value="cpa">CPA</option>
             </select>
           </div>
           <div>
-            <label className={labelCls}>{tr.bidLabel} ($)</label>
+            <label className={labelCls}>{tr.bidLabel} ($) · {bidUnit}</label>
             <input type="number" step="0.05" min="0.05" className={inputCls} value={f.bid_amount} onChange={(e) => set("bid_amount", e.target.value)} />
           </div>
           <div>
             <label className={labelCls}>{tr.totalBudget} ($)</label>
             <input type="number" step="10" min="0" className={inputCls} value={f.total_budget} onChange={(e) => set("total_budget", e.target.value)} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>{tr.dailyBudget} ($)</label>
+            <input type="number" step="5" min="0" className={inputCls} value={f.daily_budget} onChange={(e) => set("daily_budget", e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>{tr.frequencyCap}</label>
+            <input type="number" step="1" min="0" className={inputCls} value={f.frequency_cap} onChange={(e) => set("frequency_cap", e.target.value)} />
+            <div className="text-slate-600 text-[10px] mt-1">{tr.frequencyCapHint}</div>
           </div>
         </div>
 
@@ -531,7 +546,11 @@ function WalletTab({ token, advertiser, onChange, flash }: { token: string; adve
 // ── Reports tab ──
 function ReportsTab({ token }: { token: string }) {
   const { tr } = useLang();
-  const [data, setData] = useState<{ campaigns: AdCampaign[]; totals: { impressions: number; clicks: number; spent: number } } | null>(null);
+  const [data, setData] = useState<{
+    campaigns: AdCampaign[];
+    totals: { impressions: number; clicks: number; conversions: number; spent: number };
+    series: PerformanceSnapshot[];
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/ads/reports", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()).then(setData);
@@ -541,37 +560,56 @@ function ReportsTab({ token }: { token: string }) {
 
   const totals = data.totals;
   const ctr = totals.impressions ? (totals.clicks / totals.impressions) * 100 : 0;
+  const hasSpend = (data.series || []).some((s) => s.equity > 0);
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Spend over time */}
+      {hasSpend && (
+        <div className="card p-5">
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-slate-400 text-xs font-medium uppercase tracking-wider">{tr.spendOverTime}</h2>
+            <span className="text-white font-black text-lg">${totals.spent.toFixed(2)}</span>
+          </div>
+          <PerformanceChart data={data.series} height={150} showGrid showTooltip />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Summary label={tr.impressionsLabel} value={totals.impressions.toLocaleString()} />
         <Summary label={tr.clicksLabel} value={totals.clicks.toLocaleString()} />
         <Summary label={tr.ctrLabel} value={`${ctr.toFixed(2)}%`} />
+        <Summary label={tr.conversionsLabel} value={totals.conversions.toLocaleString()} />
         <Summary label={tr.spendLabel} value={`$${totals.spent.toFixed(2)}`} />
       </div>
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+
+      <div className="card overflow-x-auto scrollbar-thin">
+        <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="text-slate-500 text-xs border-b border-[#1a2235]">
               <th className="text-start font-medium px-4 py-2.5">{tr.campaignNameLabel}</th>
               <th className="text-end font-medium px-3 py-2.5">{tr.impressionsLabel}</th>
               <th className="text-end font-medium px-3 py-2.5">{tr.clicksLabel}</th>
               <th className="text-end font-medium px-3 py-2.5">{tr.ctrLabel}</th>
+              <th className="text-end font-medium px-3 py-2.5">{tr.conversionsLabel}</th>
+              <th className="text-end font-medium px-3 py-2.5">{tr.cvrLabel}</th>
               <th className="text-end font-medium px-4 py-2.5">{tr.spendLabel}</th>
             </tr>
           </thead>
           <tbody>
             {data.campaigns.map((c) => (
               <tr key={c.id} className="border-b border-[#11182a] last:border-0">
-                <td className="px-4 py-2.5 text-white font-medium">{c.name}</td>
+                <td className="px-4 py-2.5 text-white font-medium whitespace-nowrap">{c.name}</td>
                 <td className="px-3 py-2.5 text-end text-slate-300">{(c.impressions ?? 0).toLocaleString()}</td>
                 <td className="px-3 py-2.5 text-end text-slate-300">{(c.clicks ?? 0).toLocaleString()}</td>
                 <td className="px-3 py-2.5 text-end text-slate-300">{((c.ctr ?? 0) * 100).toFixed(1)}%</td>
+                <td className="px-3 py-2.5 text-end text-slate-300">{(c.conversions ?? 0).toLocaleString()}</td>
+                <td className="px-3 py-2.5 text-end text-slate-300">{((c.cvr ?? 0) * 100).toFixed(1)}%</td>
                 <td className="px-4 py-2.5 text-end text-emerald-400 font-bold">${(c.spent ?? 0).toFixed(2)}</td>
               </tr>
             ))}
             {data.campaigns.length === 0 && (
-              <tr><td colSpan={5} className="text-center text-slate-600 py-8">{tr.noCampaignsYet}</td></tr>
+              <tr><td colSpan={7} className="text-center text-slate-600 py-8">{tr.noCampaignsYet}</td></tr>
             )}
           </tbody>
         </table>

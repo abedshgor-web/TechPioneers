@@ -7,7 +7,7 @@ export interface EventTokenPayload {
   campid: string; // campaign id
   advid: string; // advertiser id
   plc: string;   // placement
-  kind: "impression" | "click";
+  kind: "impression" | "click" | "conversion";
 }
 
 /**

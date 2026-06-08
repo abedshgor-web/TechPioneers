@@ -189,6 +189,13 @@ const en = {
   languagesLabel: "Languages",
   countriesLabel: "Countries",
   interestsLabel: "Interests",
+  conversionsLabel: "Conversions",
+  cvrLabel: "CVR",
+  cpaLabel: "CPA",
+  perConversion: "per conversion",
+  frequencyCap: "Max views / user / day",
+  frequencyCapHint: "0 = unlimited",
+  spendOverTime: "Spend over time (14 days)",
 };
 
 const ar: typeof en = {
@@ -367,6 +374,13 @@ const ar: typeof en = {
   languagesLabel: "اللغات",
   countriesLabel: "الدول",
   interestsLabel: "الاهتمامات",
+  conversionsLabel: "التحويلات",
+  cvrLabel: "نسبة التحويل",
+  cpaLabel: "تكلفة التحويل",
+  perConversion: "لكل تحويل",
+  frequencyCap: "أقصى ظهور / مستخدم / يوم",
+  frequencyCapHint: "0 = غير محدود",
+  spendOverTime: "الإنفاق عبر الزمن (14 يوماً)",
 };
 
 const fr: typeof en = { ...en,
