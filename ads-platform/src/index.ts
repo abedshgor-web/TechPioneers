@@ -6,6 +6,9 @@ import { initSchema } from './db';
 import authRoutes from './routes/auth';
 import walletRoutes from './routes/wallet';
 import campaignRoutes from './routes/campaigns';
+import adRoutes from './routes/ads';
+import serveRoutes from './routes/serve';
+import reportRoutes from './routes/reports';
 
 initSchema();
 
@@ -18,6 +21,9 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/campaigns', adRoutes);   // /api/campaigns/:id/ads
+app.use('/api/serve', serveRoutes);    // /api/serve + /api/serve/click/:adId
+app.use('/api/reports', reportRoutes);
 
 // تقديم الواجهة الثابتة (صفحة الهبوط + لوحة المعلن)
 app.use(express.static(path.join(__dirname, '..', 'public')));

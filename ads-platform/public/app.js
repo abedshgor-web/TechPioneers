@@ -53,14 +53,20 @@ async function showDashboard(user) {
 }
 
 async function refresh() {
-  const [{ balance }, { campaigns }] = await Promise.all([
+  const [{ balance }, { campaigns }, reportData] = await Promise.all([
     api('/wallet'),
     api('/campaigns'),
+    api('/reports'),
   ]);
   $('balance').textContent = fmt(balance);
   $('campCount').textContent = campaigns.length;
   $('activeCount').textContent = campaigns.filter((c) => c.status === 'active').length;
 
+  renderCampaigns(campaigns);
+  renderReport(reportData.report);
+}
+
+function renderCampaigns(campaigns) {
   const tbody = $('campRows');
   if (!campaigns.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="muted">لا توجد حملات بعد.</td></tr>';
@@ -76,10 +82,11 @@ async function refresh() {
       `<td>${statusAr(c.status)}</td>` +
       `<td>${fmt(c.budget_total)}</td>` +
       `<td>${fmt(c.bid_amount)}</td>` +
-      `<td><button class="link" data-id="${c.id}" data-next="${next}">${label}</button></td>`;
+      `<td><button class="link" data-act="status" data-id="${c.id}" data-next="${next}">${label}</button>` +
+      ` &nbsp; <button class="link" data-act="ad" data-id="${c.id}">+ إعلان</button></td>`;
     tbody.appendChild(tr);
   }
-  tbody.querySelectorAll('button[data-id]').forEach((btn) => {
+  tbody.querySelectorAll('button[data-act="status"]').forEach((btn) => {
     btn.onclick = async () => {
       try {
         await api(`/campaigns/${btn.dataset.id}/status`, {
@@ -90,7 +97,56 @@ async function refresh() {
       } catch (e) { alert(e.message); }
     };
   });
+  tbody.querySelectorAll('button[data-act="ad"]').forEach((btn) => {
+    btn.onclick = () => addAd(btn.dataset.id);
+  });
 }
+
+function renderReport(report) {
+  const tbody = $('reportRows');
+  if (!report || !report.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">لا توجد بيانات بعد.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = report
+    .map(
+      (r) =>
+        `<tr><td>${escapeHtml(r.name)}</td><td>${r.impressions}</td><td>${r.clicks}</td>` +
+        `<td>${r.ctr}%</td><td>${fmt(r.cpc)}</td><td>${fmt(r.spend)}</td></tr>`
+    )
+    .join('');
+}
+
+async function addAd(campaignId) {
+  const headline = prompt('عنوان الإعلان:');
+  if (!headline) return;
+  const destUrl = prompt('رابط الوجهة (https://):', 'https://example.com');
+  if (!destUrl) return;
+  try {
+    await api(`/campaigns/${campaignId}/ads`, {
+      method: 'POST',
+      body: JSON.stringify({ headline, body: '', destUrl }),
+    });
+    alert('تمت إضافة الإعلان. فعّل الحملة لعرضه.');
+  } catch (e) { alert(e.message); }
+}
+
+/* معاينة العرض الحي: تطلب إعلاناً من محرك العرض وتعرضه */
+$('serveBtn').onclick = async () => {
+  const slot = $('adSlot');
+  const res = await fetch('/api/serve?geo=SA&lang=ar&device=mobile');
+  if (res.status === 204) {
+    slot.innerHTML = '<p class="muted" style="margin:0">لا يوجد إعلان مؤهّل (فعّل حملة بها إعلان ورصيد كافٍ).</p>';
+    return;
+  }
+  const { ad } = await res.json();
+  slot.innerHTML =
+    `<h3 style="margin:0 0 6px">${escapeHtml(ad.headline)}</h3>` +
+    `<p class="muted" style="margin:0 0 12px">${escapeHtml(ad.body || '')}</p>` +
+    `<a class="btn btn-primary" href="${ad.clickUrl}" target="_blank" rel="noopener">زيارة الإعلان ←</a>`;
+  // إعادة تحميل التقرير بعد ثانية لإظهار الانطباع المسجّل
+  setTimeout(refresh, 800);
+};
 
 $('topupBtn').onclick = async () => {
   try { await api('/wallet/topup', { method: 'POST', body: JSON.stringify({ amount: 5000 }) }); await refresh(); }

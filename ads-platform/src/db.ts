@@ -49,5 +49,31 @@ export function initSchema(): void {
       created_at   TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id);
+
+    CREATE TABLE IF NOT EXISTS ads (
+      id          TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+      headline    TEXT NOT NULL,
+      body        TEXT NOT NULL DEFAULT '',
+      image_url   TEXT,
+      dest_url    TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'active',   -- active | paused
+      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ads_campaign ON ads(campaign_id);
+
+    CREATE TABLE IF NOT EXISTS ad_events (
+      id          TEXT PRIMARY KEY,
+      ad_id       TEXT NOT NULL REFERENCES ads(id) ON DELETE CASCADE,
+      campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+      type        TEXT NOT NULL,            -- impression | click
+      user_hash   TEXT,                     -- تجزئة لا تكشف الهوية
+      geo         TEXT,
+      device      TEXT,
+      cost        INTEGER NOT NULL DEFAULT 0, -- المخصوم بالسنت (للنقرات)
+      ts          TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_events_campaign ON ad_events(campaign_id, type);
+    CREATE INDEX IF NOT EXISTS idx_events_ad ON ad_events(ad_id, type);
   `);
 }

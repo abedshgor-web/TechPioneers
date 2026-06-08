@@ -53,12 +53,31 @@
 
     <table class="table">
       <thead>
-        <tr><th>الحملة</th><th>الحالة</th><th>الميزانية الإجمالية</th><th>CPC الأقصى</th><th>إجراء</th></tr>
+        <tr><th>الحملة</th><th>الحالة</th><th>الميزانية</th><th>CPC الأقصى</th><th>إجراءات</th></tr>
       </thead>
       <tbody id="campRows">
         <tr><td colspan="5" class="muted">لا توجد حملات بعد.</td></tr>
       </tbody>
     </table>
+
+    <h2 style="margin:34px 0 14px">تقرير الأداء</h2>
+    <table class="table">
+      <thead>
+        <tr><th>الحملة</th><th>الانطباعات</th><th>النقرات</th><th>CTR</th><th>CPC الفعلي</th><th>الإنفاق</th></tr>
+      </thead>
+      <tbody id="reportRows">
+        <tr><td colspan="6" class="muted">لا توجد بيانات بعد.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin:34px 0 14px">معاينة العرض الحي</h2>
+    <div class="row-actions">
+      <button id="serveBtn" class="btn btn-ghost">اطلب إعلاناً (geo=SA)</button>
+      <span class="muted">يحاكي طلب عرض من ناشر ويسجّل انطباعاً.</span>
+    </div>
+    <div id="adSlot" class="card" style="max-width:420px">
+      <p class="muted" style="margin:0">لا يوجد إعلان معروض بعد.</p>
+    </div>
   </div>
 
   <script src="/app.js"></script>
