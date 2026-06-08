@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { initSchema } from './db';
+import { seedAdmin } from './seed';
 import authRoutes from './routes/auth';
 import walletRoutes from './routes/wallet';
 import campaignRoutes from './routes/campaigns';
@@ -10,8 +11,10 @@ import adRoutes from './routes/ads';
 import serveRoutes from './routes/serve';
 import reportRoutes from './routes/reports';
 import templateRoutes from './routes/templates';
+import adminRoutes from './routes/admin';
 
 initSchema();
+seedAdmin();
 
 const app = express();
 app.use(cors());
@@ -26,6 +29,7 @@ app.use('/api/campaigns', adRoutes);   // /api/campaigns/:id/ads
 app.use('/api/serve', serveRoutes);    // /api/serve + /api/serve/click/:adId
 app.use('/api/reports', reportRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/admin', adminRoutes);
 
 // تقديم الواجهة الثابتة (صفحة الهبوط + لوحة المعلن)
 app.use(express.static(path.join(__dirname, '..', 'public')));

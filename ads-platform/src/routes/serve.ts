@@ -53,7 +53,7 @@ router.get('/', (req, res) => {
               c.user_id, c.bid_amount, c.budget_total, c.targeting
          FROM ads a
          JOIN campaigns c ON c.id = a.campaign_id
-        WHERE a.status = 'active' AND c.status = 'active'
+        WHERE a.status = 'active' AND a.review_status = 'approved' AND c.status = 'active'
         ORDER BY c.bid_amount DESC`
     )
     .all() as ServableAd[];

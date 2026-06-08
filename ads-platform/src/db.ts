@@ -57,10 +57,13 @@ export function initSchema(): void {
       body        TEXT NOT NULL DEFAULT '',
       image_url   TEXT,
       dest_url    TEXT NOT NULL,
-      status      TEXT NOT NULL DEFAULT 'active',   -- active | paused
-      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      status        TEXT NOT NULL DEFAULT 'active',   -- active | paused
+      review_status TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | rejected
+      review_reason TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_ads_campaign ON ads(campaign_id);
+    CREATE INDEX IF NOT EXISTS idx_ads_review ON ads(review_status);
 
     CREATE TABLE IF NOT EXISTS ad_events (
       id          TEXT PRIMARY KEY,
@@ -82,5 +85,28 @@ export function initSchema(): void {
       ar_threshold  INTEGER NOT NULL DEFAULT 500,  -- يحفّز الشحن عند النزول دونه (سنت)
       ar_amount     INTEGER NOT NULL DEFAULT 2000  -- مبلغ الشحن التلقائي (سنت)
     );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id         TEXT PRIMARY KEY,
+      actor_id   TEXT NOT NULL,
+      action     TEXT NOT NULL,
+      target     TEXT,
+      meta       TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
+
+  migrate();
+}
+
+/** ترحيلات خفيفة لإضافة أعمدة على قواعد بيانات قائمة (SQLite يفتقر لـ ADD COLUMN IF NOT EXISTS) */
+function migrate(): void {
+  const cols = db.prepare('PRAGMA table_info(ads)').all() as Array<{ name: string }>;
+  const names = new Set(cols.map((c) => c.name));
+  if (!names.has('review_status')) {
+    db.exec(`ALTER TABLE ads ADD COLUMN review_status TEXT NOT NULL DEFAULT 'pending'`);
+  }
+  if (!names.has('review_reason')) {
+    db.exec(`ALTER TABLE ads ADD COLUMN review_reason TEXT`);
+  }
 }

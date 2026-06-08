@@ -158,7 +158,7 @@ async function addAd(campaignId) {
       method: 'POST',
       body: JSON.stringify({ headline, body: '', destUrl }),
     });
-    alert('تمت إضافة الإعلان. فعّل الحملة لعرضه.');
+    alert('تمت إضافة الإعلان وهو قيد المراجعة. سيُعرض بعد اعتماده من الإدارة وتفعيل الحملة.');
   } catch (e) { alert(e.message); }
 }
 
