@@ -66,10 +66,13 @@ function renderReview(ads) {
   tbody.innerHTML = '';
   for (const a of ads) {
     const tr = document.createElement('tr');
+    const thumb = a.image_url
+      ? `<img src="${escapeHtml(a.image_url)}" alt="" style="height:34px;border-radius:4px;vertical-align:middle;margin-left:8px" />`
+      : '';
     tr.innerHTML =
       `<td>${escapeHtml(a.advertiser)}</td>` +
       `<td>${escapeHtml(a.campaign_name)}</td>` +
-      `<td>${escapeHtml(a.headline)}</td>` +
+      `<td>${thumb}${escapeHtml(a.headline)}</td>` +
       `<td><a href="${escapeHtml(a.dest_url)}" target="_blank" rel="noopener">رابط</a></td>` +
       `<td><button class="link" data-act="approve" data-id="${a.id}">اعتماد</button>` +
       ` &nbsp; <button class="link" data-act="reject" data-id="${a.id}">رفض</button></td>`;

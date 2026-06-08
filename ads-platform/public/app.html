@@ -89,6 +89,22 @@
     </div>
   </div>
 
+  <!-- نموذج إنشاء إعلان مع رفع صورة -->
+  <dialog id="adDialog">
+    <form method="dialog" class="panel" style="border:none;min-width:320px">
+      <h2 style="margin-top:0">إعلان جديد</h2>
+      <div class="field"><label for="adHeadline">العنوان</label><input id="adHeadline" maxlength="40" /></div>
+      <div class="field"><label for="adBody">النص</label><input id="adBody" maxlength="90" /></div>
+      <div class="field"><label for="adDest">رابط الوجهة (https://)</label><input id="adDest" value="https://" /></div>
+      <div class="field"><label for="adImage">صورة الإعلان (اختياري — png/jpeg/webp/gif حتى 2MB)</label><input id="adImage" type="file" accept="image/*" /></div>
+      <div class="error" id="adError"></div>
+      <div class="row-actions" style="margin:0">
+        <button id="adCancel" class="btn btn-ghost" value="cancel">إلغاء</button>
+        <button id="adSubmit" class="btn btn-primary" value="default">إضافة</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="/app.js"></script>
 </body>
 </html>
