@@ -6,7 +6,7 @@ services:
     name: ads-platform
     runtime: node
     rootDir: ads-platform
-    branch: claude/ads-platform-planning-goU2p
+    branch: claude/project-idea-fEaWC
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
