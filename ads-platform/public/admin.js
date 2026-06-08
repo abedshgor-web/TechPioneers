@@ -52,6 +52,7 @@ async function refresh() {
   $('pendingAds').textContent = ov.pendingAds;
   $('totalSpend').textContent = fmt(ov.totalSpend);
   $('totalTopups').textContent = fmt(ov.totalTopups);
+  $('blockedClicks').textContent = ov.blockedClicks;
   renderReview(ads);
   renderUsers(users);
 }

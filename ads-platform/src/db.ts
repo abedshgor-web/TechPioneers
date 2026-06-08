@@ -94,6 +94,24 @@ export function initSchema(): void {
       meta       TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    -- nonce أحادي الاستخدام لمنع إعادة تشغيل رابط النقر
+    CREATE TABLE IF NOT EXISTS click_nonces (
+      nonce     TEXT PRIMARY KEY,
+      ad_id     TEXT NOT NULL,
+      used_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- سجل النقرات المرفوضة (احتيال/تكرار/بوت) لمتابعة الإدارة
+    CREATE TABLE IF NOT EXISTS fraud_events (
+      id          TEXT PRIMARY KEY,
+      ad_id       TEXT,
+      campaign_id TEXT,
+      user_hash   TEXT,
+      reason      TEXT NOT NULL,   -- replay | frequency | bot | bad_signature
+      ts          TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_fraud_reason ON fraud_events(reason);
   `);
 
   migrate();

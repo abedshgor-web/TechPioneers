@@ -21,7 +21,16 @@ router.get('/overview', (_req, res) => {
   const pendingAds = (db.prepare(`SELECT COUNT(*) AS n FROM ads WHERE review_status = 'pending'`).get() as { n: number }).n;
   const totalSpend = (db.prepare(`SELECT COALESCE(SUM(cost),0) AS s FROM ad_events WHERE type = 'click'`).get() as { s: number }).s;
   const totalTopups = (db.prepare(`SELECT COALESCE(SUM(amount),0) AS s FROM wallet_ledger WHERE type IN ('topup','auto_topup')`).get() as { s: number }).s;
-  res.json({ advertisers, activeCampaigns, pendingAds, totalSpend, totalTopups });
+  const blockedClicks = (db.prepare(`SELECT COUNT(*) AS n FROM fraud_events`).get() as { n: number }).n;
+  res.json({ advertisers, activeCampaigns, pendingAds, totalSpend, totalTopups, blockedClicks });
+});
+
+/** GET /api/admin/fraud — أحدث النقرات المرفوضة (مكافحة الاحتيال) */
+router.get('/fraud', (_req, res) => {
+  const rows = db
+    .prepare(`SELECT reason, COUNT(*) AS count FROM fraud_events GROUP BY reason ORDER BY count DESC`)
+    .all();
+  res.json({ byReason: rows });
 });
 
 /** GET /api/admin/ads/review — طابور مراجعة الإعلانات */

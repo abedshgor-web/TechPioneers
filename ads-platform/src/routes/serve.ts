@@ -26,6 +26,21 @@ function campaignSpend(campaignId: string): number {
   return r.s;
 }
 
+// مكافحة الاحتيال (راجع docs/ads-platform/04, 05)
+const FRAUD_WINDOW = `-${Number(process.env.FRAUD_WINDOW_MIN) || 60} minutes`;
+const FRAUD_MAX_CLICKS = Number(process.env.FRAUD_MAX_CLICKS) || 1; // أقصى نقرات مدفوعة لكل مستخدم/إعلان ضمن النافذة
+const BOT_RE = /bot|crawl|spider|slurp|headless|curl|wget|python-requests|scrapy|phantom/i;
+
+function isBot(ua: string | undefined): boolean {
+  return !ua || BOT_RE.test(ua);
+}
+
+function logFraud(adId: string | null, campaignId: string | null, userHash: string, reason: string): void {
+  db.prepare(
+    'INSERT INTO fraud_events (id, ad_id, campaign_id, user_hash, reason) VALUES (?, ?, ?, ?, ?)'
+  ).run(uuid(), adId, campaignId, userHash, reason);
+}
+
 /** مطابقة الاستهداف: إن حُدّد بُعد في الحملة يجب أن يطابق سياق الطلب */
 function matchesTargeting(targeting: string, ctx: { geo?: string; lang?: string; device?: string }): boolean {
   let t: { geo?: string[]; lang?: string[]; device?: string[] };
@@ -71,14 +86,15 @@ router.get('/', (req, res) => {
     ).run(uuid(), ad.ad_id, ad.campaign_id, userHash, ctx.geo ?? null, ctx.device ?? null);
 
     const ts = Date.now();
-    const sig = signClick(ad.ad_id, ts);
+    const nonce = uuid(); // يجعل كل رابط نقر أحادي الاستخدام
+    const sig = signClick(ad.ad_id, ts, nonce);
     return res.json({
       ad: {
         id: ad.ad_id,
         headline: ad.headline,
         body: ad.body,
         imageUrl: ad.image_url,
-        clickUrl: `/api/serve/click/${ad.ad_id}?ts=${ts}&sig=${sig}`,
+        clickUrl: `/api/serve/click/${ad.ad_id}?ts=${ts}&nonce=${nonce}&sig=${sig}`,
       },
     });
   }
@@ -88,14 +104,19 @@ router.get('/', (req, res) => {
 
 /**
  * GET /api/click/:adId — تتبّع النقرة + خصم الإنفاق + إعادة التوجيه.
- * يتحقق من التوقيع، يخصم CPC ذرّياً، يوقف الحملة عند نفاد الرصيد/الميزانية.
+ * يتحقق من التوقيع و nonce أحادي الاستخدام، يصفّي البوتات ويطبّق تقييداً ترددياً،
+ * يخصم CPC ذرّياً، ويوقف الحملة عند نفاد الرصيد/الميزانية.
+ * النقرات المرفوضة تعيد التوجيه للمستخدم لكن دون خصم، وتُسجَّل في fraud_events.
  */
 router.get('/click/:adId', (req, res) => {
   const adId = req.params.adId;
   const ts = Number(req.query.ts);
+  const nonce = typeof req.query.nonce === 'string' ? req.query.nonce : '';
   const sig = typeof req.query.sig === 'string' ? req.query.sig : '';
+  const userHash = hashUser(req.ip || 'anon');
 
-  if (!verifyClick(adId, ts, sig)) {
+  if (!verifyClick(adId, ts, nonce, sig)) {
+    logFraud(adId, null, userHash, 'bad_signature');
     return res.status(400).send('رابط نقر غير صالح أو منتهٍ');
   }
 
@@ -111,15 +132,42 @@ router.get('/click/:adId', (req, res) => {
 
   if (!ad) return res.status(404).send('الإعلان غير موجود');
 
-  // خصم ذرّي + إيقاف الحملة عند الحدود (حواجز الأمان — راجع docs/ads-platform/03)
+  // تصفية البوتات: نعيد التوجيه لكن لا نخصم
+  if (isBot(req.header('user-agent'))) {
+    logFraud(adId, ad.campaign_id, userHash, 'bot');
+    return res.redirect(302, ad.dest_url);
+  }
+
+  // خصم ذرّي مع حواجز إزالة التكرار والتقييد الترددي (راجع docs/ads-platform/03,04,05)
   const tx = db.transaction(() => {
+    // 1) nonce أحادي الاستخدام — يمنع إعادة تشغيل نفس الرابط
+    const used = db.prepare('SELECT 1 FROM click_nonces WHERE nonce = ?').get(nonce);
+    if (used) {
+      logFraud(adId, ad.campaign_id, userHash, 'replay');
+      return;
+    }
+    db.prepare('INSERT INTO click_nonces (nonce, ad_id) VALUES (?, ?)').run(nonce, adId);
+
+    // 2) تقييد ترددي — أقصى نقرات مدفوعة لكل مستخدم/إعلان ضمن النافذة
+    const recent = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM ad_events
+          WHERE ad_id = ? AND user_hash = ? AND type = 'click' AND ts >= datetime('now', ?)`
+      )
+      .get(adId, userHash, FRAUD_WINDOW) as { n: number };
+    if (recent.n >= FRAUD_MAX_CLICKS) {
+      logFraud(adId, ad.campaign_id, userHash, 'frequency');
+      return;
+    }
+
+    // 3) الخصم الفعلي
     if (ad.status === 'active' && balanceOf(ad.user_id) >= ad.bid_amount) {
       addEntry(ad.user_id, 'spend', -ad.bid_amount, ad.campaign_id);
 
       db.prepare(
         `INSERT INTO ad_events (id, ad_id, campaign_id, type, user_hash, cost)
          VALUES (?, ?, ?, 'click', ?, ?)`
-      ).run(uuid(), ad.id, ad.campaign_id, hashUser(req.ip || 'anon'), ad.bid_amount);
+      ).run(uuid(), ad.id, ad.campaign_id, userHash, ad.bid_amount);
 
       // تسهيل: الشحن التلقائي إن كان مفعّلاً ونزل الرصيد دون الحد
       maybeAutoRecharge(ad.user_id);

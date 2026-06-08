@@ -4,19 +4,21 @@ const SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 
 /**
  * توقيع رابط النقر لمنع الأحداث المزيّفة (راجع docs/ads-platform/04).
- * التوقيع يربط الإعلان + الوقت، وله صلاحية محدودة.
+ * التوقيع يربط الإعلان + الوقت + nonce فريد، وله صلاحية محدودة.
+ * الـ nonce يجعل كل رابط نقر أحادي الاستخدام (مع تتبّع الاستخدام في قاعدة البيانات).
  */
-export function signClick(adId: string, ts: number): string {
-  return crypto.createHmac('sha256', SECRET).update(`${adId}.${ts}`).digest('hex');
+export function signClick(adId: string, ts: number, nonce: string): string {
+  return crypto.createHmac('sha256', SECRET).update(`${adId}.${ts}.${nonce}`).digest('hex');
 }
 
 const MAX_AGE_MS = 60 * 60 * 1000; // ساعة واحدة
 
-export function verifyClick(adId: string, ts: number, sig: string): boolean {
+export function verifyClick(adId: string, ts: number, nonce: string, sig: string): boolean {
   if (!Number.isFinite(ts) || Date.now() - ts > MAX_AGE_MS || ts > Date.now() + 60_000) {
     return false;
   }
-  const expected = signClick(adId, ts);
+  if (!nonce) return false;
+  const expected = signClick(adId, ts, nonce);
   // مقارنة ثابتة الزمن لتفادي تسريب التوقيت
   const a = Buffer.from(expected);
   const b = Buffer.from(sig || '');
